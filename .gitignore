@@ -46,3 +46,6 @@ next-env.d.ts
 *.db
 *.sqlite
 contraseña.txt
+
+.vercel
+.env*.local
