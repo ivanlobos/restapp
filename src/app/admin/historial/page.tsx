@@ -11,5 +11,10 @@ export default async function HistorialPage() {
     },
   });
 
-  return <HistorialClient initialOrders={pedidos} />;
+  const serialized = pedidos.map(p => ({
+    ...p,
+    createdAt: p.createdAt.toISOString(),
+  }));
+
+  return <HistorialClient initialOrders={serialized} />;
 }
