@@ -16,9 +16,10 @@ export interface CartItem {
 export interface CartStore {
   tableId: string | null;
   customerName: string | null;
+  email: string | null;
   items: CartItem[];
   includeTip: boolean;
-  setSession: (tableId: string, name: string) => void;
+  setSession: (tableId: string, name: string, email?: string) => void;
   addItem: (product: { id: string; name: string; price: number }) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
