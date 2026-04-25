@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Table2, UtensilsCrossed, ClipboardList } from "lucide-react";
+import { LayoutDashboard, Table2, UtensilsCrossed, ClipboardList, History } from "lucide-react";
 
 const links = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/mesas", label: "Mesas", icon: Table2 },
   { href: "/admin/carta", label: "Carta", icon: UtensilsCrossed },
   { href: "/admin/pedidos", label: "Pedidos", icon: ClipboardList },
+  { href: "/admin/historial", label: "Historial", icon: History },
 ];
 
 export function Sidebar() {
