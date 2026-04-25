@@ -48,7 +48,6 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
           includeTip,
           items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
           }),
-           }),
         });
 
         if (!orderRes.ok) {
