@@ -48,17 +48,20 @@ const badgeColor: Record<string, string> = {
 };
 
 const nextStatus: Record<string, string | null> = {
-  PENDING: null,
-  PROCESSING: null,
+  PENDING: "PROCESSING",
+  PROCESSING: "PREPARING",
   PAID: "PREPARING",
   PREPARING: "DELIVERED",
   DELIVERED: null,
 };
 
 const nextStatusLabel: Record<string, string> = {
+  PENDING: "Confirmar pedido",
+  PROCESSING: "Comenzar a preparar",
   PAID: "Comenzar a preparar",
   PREPARING: "Marcar como entregado",
 };
+
 
 export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
