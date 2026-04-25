@@ -18,7 +18,7 @@ const stripePromise = isMockMode ? null : loadStripe(STRIPE_KEY);
 export default function PagoPage({ params }: { params: Promise<{ tableId: string }> }) {
   const { tableId } = use(params);
   const router = useRouter();
-  const { customerName, tableId: storeTableId, items, includeTip, getSubtotal, getTip, getTotal } = useCartStore();
+  const { customerName, email, tableId: storeTableId, items, includeTip, getSubtotal, getTip, getTotal } = useCartStore();
 
   const [orderId, setOrderId] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -41,12 +41,14 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
         const orderRes = await fetch("/api/orders", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            tableId,
-            customerName,
-            includeTip,
-            items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+        body: JSON.stringify({
+          tableId,
+          customerName,
+          email: email ?? undefined,
+          includeTip,
+          items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
           }),
+           }),
         });
 
         if (!orderRes.ok) {

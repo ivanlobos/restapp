@@ -10,9 +10,11 @@ export const useCartStore = create<CartStore>()(
     (set, get) => ({
       tableId: null,
       customerName: null,
+    email: null as string | null,
       items: [],
       includeTip: true,
 
+      setSession: (tableId, name, email?: string) => set({ tableId, customerName: name, email: email ?? null }),
       setSession: (tableId, name) => set({ tableId, customerName: name }),
 
       addItem: (product) => {
