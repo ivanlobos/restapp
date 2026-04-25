@@ -15,8 +15,6 @@ export const useCartStore = create<CartStore>()(
       includeTip: true,
 
       setSession: (tableId, name, email?: string) => set({ tableId, customerName: name, email: email ?? null }),
-      setSession: (tableId, name) => set({ tableId, customerName: name }),
-
       addItem: (product) => {
         const items = get().items;
         const existing = items.find((i) => i.productId === product.id);
