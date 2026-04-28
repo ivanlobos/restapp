@@ -1,10 +1,35 @@
 {
-  "common": {
-    "appName": "RestaurantApp",
-    "dashboard": "Dashboard",
-    "tables": "Mesas",
-    "menu": "Carta",
-    "orders": "Pedidos",
-    "settings": "Configuración"
+  "TablePage": {
+    "welcome": "Bienvenido",
+    "table": "Mesa"
+  },
+  "NameEntry": {
+    "title": "¿Cómo te llamas?",
+    "placeholder": "Tu nombre",
+    "hint": "Tu nombre aparecerá en tu pedido individual (Mesa {tableNumber})",
+    "emailTitle": "¿Te gustaría recibir novedades de nuestra carta?",
+    "emailHint": "Opcional · Solo te escribiremos cuando haya algo especial 🎁",
+    "emailPlaceholder": "tu@email.com",
+    "submit": "Ver la carta"
+  },
+  "Menu": {
+    "title": "Nuestra carta",
+    "empty": "No hay productos disponibles",
+    "addToCart": "Agregar",
+    "cart": "Ver pedido"
+  },
+  "Cart": {
+    "title": "Tu pedido",
+    "empty": "Tu carrito está vacío",
+    "subtotal": "Subtotal",
+    "tip": "Propina (10%)",
+    "total": "Total",
+    "checkout": "Ir a pagar",
+    "includeTip": "Incluir propina"
+  },
+  "Gracias": {
+    "title": "¡Pedido confirmado!",
+    "message": "Tu pedido ha sido recibido. El equipo lo está preparando.",
+    "back": "Volver al inicio"
   }
 }

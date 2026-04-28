@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { QrCode, Plus, Trash2, X, Download } from "lucide-react";
+import { QrCode, Plus, Trash2, X, Download, FileText } from "lucide-react";
+import jsPDF from "jspdf";
 import Image from "next/image";
 
 interface Table {
@@ -36,6 +37,77 @@ export function MesasClient({ initialTables }: { initialTables: Table[] }) {
     }
     setLoading(false);
   };
+
+const handleDownloadPDF = async (table: Table) => {
+  const qrUrl = `${window.location.origin}/api/qr/${table.id}`;
+  const img = new window.Image();
+  img.crossOrigin = "anonymous";
+  img.src = qrUrl;
+  img.onload = () => {
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const pageW = 210;
+    const pageH = 297;
+
+    // Fondo blanco
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(0, 0, pageW, pageH, "F");
+
+    // Franja superior naranja
+    pdf.setFillColor(245, 158, 11);
+    pdf.rect(0, 0, pageW, 40, "F");
+
+    // Nombre restaurante
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(28);
+    pdf.text("RestaurantApp", pageW / 2, 22, { align: "center" });
+    pdf.setFontSize(13);
+    pdf.setFont("helvetica", "normal");
+    pdf.text("Escanea el QR para ver la carta y pedir", pageW / 2, 33, { align: "center" });
+
+    // Número de mesa grande
+    pdf.setTextColor(30, 30, 30);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(52);
+    pdf.text(`Mesa ${table.number}`, pageW / 2, 80, { align: "center" });
+
+    // Etiqueta
+    if (table.label) {
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(18);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text(table.label, pageW / 2, 93, { align: "center" });
+    }
+
+    // QR centrado grande
+    const qrSize = 120;
+    const qrX = (pageW - qrSize) / 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext("2d")!;
+    ctx.drawImage(img, 0, 0);
+    const qrData = canvas.toDataURL("image/png");
+    pdf.addImage(qrData, "PNG", qrX, 105, qrSize, qrSize);
+
+    // URL debajo del QR
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    pdf.setTextColor(150, 150, 150);
+    const url = `${window.location.origin}/mesa/${table.id}`;
+    pdf.text(url, pageW / 2, 233, { align: "center" });
+
+    // Franja inferior
+    pdf.setFillColor(245, 158, 11);
+    pdf.rect(0, pageH - 20, pageW, 20, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "normal");
+    pdf.text("Powered by RestaurantApp", pageW / 2, pageH - 8, { align: "center" });
+
+    pdf.save(`mesa-${table.number}.pdf`);
+  };
+};
 
   const handleDelete = async (id: string) => {
     if (!confirm("¿Eliminar esta mesa?")) return;
@@ -200,6 +272,14 @@ export function MesasClient({ initialTables }: { initialTables: Table[] }) {
                 <Download size={16} />
                 Descargar PNG
               </a>
+                    <button
+          onClick={() => handleDownloadPDF(qrModal)}
+          className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors w-full justify-center"
+        >
+          <FileText size={16} />
+          Descargar PDF
+        </button>
+
             </div>
           </div>
         </div>

@@ -8,9 +8,19 @@ import { User, Mail } from "lucide-react";
 interface NameEntryProps {
   tableId: string;
   tableNumber: number;
+  locale: string;
+  texts: {
+    title: string;
+    placeholder: string;
+    hint: string;
+    emailTitle: string;
+    emailHint: string;
+    emailPlaceholder: string;
+    submit: string;
+  };
 }
 
-export function NameEntry({ tableId, tableNumber }: NameEntryProps) {
+export function NameEntry({ tableId, tableNumber, locale, texts }: NameEntryProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [wantsEmail, setWantsEmail] = useState(false);
@@ -22,14 +32,14 @@ export function NameEntry({ tableId, tableNumber }: NameEntryProps) {
     const trimmed = name.trim();
     if (!trimmed) return;
     setSession(tableId, trimmed, wantsEmail && email.trim() ? email.trim() : undefined);
-    router.push(`/mesa/${tableId}/menu`);
+    router.push(`/${locale}/mesa/${tableId}/menu`);
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          ¿Cómo te llamas?
+          {texts.title}
         </label>
         <div className="relative">
           <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -37,18 +47,15 @@ export function NameEntry({ tableId, tableNumber }: NameEntryProps) {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Tu nombre"
+            placeholder={texts.placeholder}
             autoFocus
             maxLength={50}
             className="w-full pl-9 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent text-gray-900 placeholder-gray-400"
           />
         </div>
-        <p className="text-xs text-gray-400 mt-2">
-          Tu nombre aparecerá en tu pedido individual (Mesa {tableNumber})
-        </p>
+        <p className="text-xs text-gray-400 mt-2">{texts.hint}</p>
       </div>
 
-      {/* Email opt-in */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <label className="flex items-start gap-3 cursor-pointer">
           <input
@@ -58,12 +65,8 @@ export function NameEntry({ tableId, tableNumber }: NameEntryProps) {
             className="mt-0.5 w-4 h-4 accent-amber-500 cursor-pointer"
           />
           <div>
-            <p className="text-sm font-medium text-gray-700">
-              ¿Te gustaría recibir novedades de nuestra carta?
-            </p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Opcional · Solo te escribiremos cuando haya algo especial 🎉
-            </p>
+            <p className="text-sm font-medium text-gray-700">{texts.emailTitle}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{texts.emailHint}</p>
           </div>
         </label>
 
@@ -74,7 +77,7 @@ export function NameEntry({ tableId, tableNumber }: NameEntryProps) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="tu@email.com"
+              placeholder={texts.emailPlaceholder}
               className="w-full pl-9 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent text-gray-900 placeholder-gray-400"
             />
           </div>
@@ -86,7 +89,7 @@ export function NameEntry({ tableId, tableNumber }: NameEntryProps) {
         disabled={!name.trim()}
         className="w-full bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl transition-colors text-lg"
       >
-        Ver la carta →
+        {texts.submit} →
       </button>
     </form>
   );

@@ -1,10 +1,35 @@
 {
-  "common": {
-    "appName": "RestaurantApp",
-    "dashboard": "Dashboard",
-    "tables": "Tables",
-    "menu": "Menu",
-    "orders": "Orders",
-    "settings": "Settings"
+  "TablePage": {
+    "welcome": "Welcome",
+    "table": "Table"
+  },
+  "NameEntry": {
+    "title": "What's your name?",
+    "placeholder": "Your name",
+    "hint": "Your name will appear on your individual order (Table {tableNumber})",
+    "emailTitle": "Would you like to receive updates from our menu?",
+    "emailHint": "Optional · We'll only write when there's something special 🎁",
+    "emailPlaceholder": "you@email.com",
+    "submit": "See the menu"
+  },
+  "Menu": {
+    "title": "Our menu",
+    "empty": "No products available",
+    "addToCart": "Add",
+    "cart": "View order"
+  },
+  "Cart": {
+    "title": "Your order",
+    "empty": "Your cart is empty",
+    "subtotal": "Subtotal",
+    "tip": "Tip (10%)",
+    "total": "Total",
+    "checkout": "Go to checkout",
+    "includeTip": "Include tip"
+  },
+  "Gracias": {
+    "title": "Order confirmed!",
+    "message": "Your order has been received. The team is preparing it.",
+    "back": "Back to home"
   }
 }

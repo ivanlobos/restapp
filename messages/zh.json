@@ -1,10 +1,35 @@
 {
-  "common": {
-    "appName": "RestaurantApp",
-    "dashboard": "仪表板",
-    "tables": "桌子",
-    "menu": "菜单",
-    "orders": "订单",
-    "settings": "设置"
+  "TablePage": {
+    "welcome": "欢迎",
+    "table": "桌"
+  },
+  "NameEntry": {
+    "title": "您叫什么名字？",
+    "placeholder": "您的姓名",
+    "hint": "您的姓名将显示在您的个人订单上（{tableNumber}号桌）",
+    "emailTitle": "您想收到我们菜单的最新消息吗？",
+    "emailHint": "可选 · 仅在有特别活动时联系您 🎁",
+    "emailPlaceholder": "您的邮箱",
+    "submit": "查看菜单"
+  },
+  "Menu": {
+    "title": "我们的菜单",
+    "empty": "暂无可用产品",
+    "addToCart": "添加",
+    "cart": "查看订单"
+  },
+  "Cart": {
+    "title": "您的订单",
+    "empty": "购物车为空",
+    "subtotal": "小计",
+    "tip": "小费 (10%)",
+    "total": "总计",
+    "checkout": "去结账",
+    "includeTip": "包含小费"
+  },
+  "Gracias": {
+    "title": "订单已确认！",
+    "message": "您的订单已收到，团队正在准备中。",
+    "back": "返回首页"
   }
 }
