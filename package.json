@@ -23,6 +23,7 @@
     "clsx": "^2.1.1",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.8.0",
+    "mercadopago": "^2.12.0",
     "next": "16.2.3",
     "next-intl": "^4.9.1",
     "pg": "^8.20.0",

@@ -10,6 +10,7 @@ import { MockCheckoutForm } from "@/components/customer/MockCheckoutForm";
 import { formatCLP } from "@/lib/utils";
 import { ArrowLeft, Loader2, Receipt } from "lucide-react";
 import Link from "next/link";
+import { MercadoPagoButton } from "@/components/customer/MercadoPagoButton";
 
 const STRIPE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
 const isMockMode = !STRIPE_KEY || STRIPE_KEY.includes("YOUR_KEY");
@@ -181,6 +182,26 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
               <CheckoutForm total={total} tableId={tableId} orderId={orderId} />
             </Elements>
           )}
+          {orderId && (
+    <div className="mt-4">
+    <div className="flex items-center gap-2 my-3">
+      <div className="flex-1 border-t border-gray-200" />
+      <span className="text-sm text-gray-400">o paga con</span>
+      <div className="flex-1 border-t border-gray-200" />
+    </div>
+    <MercadoPagoButton
+      total={total}
+      tableId={tableId}
+      orderId={orderId}
+      items={items.map((i) => ({
+        productId: i.productId,
+        name: i.name,
+        quantity: i.quantity,
+        price: i.price,
+      }))}
+    />
+  </div>
+)}
         </div>
       </div>
     </div>
