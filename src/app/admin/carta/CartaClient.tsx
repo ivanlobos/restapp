@@ -333,12 +333,33 @@ export function CartaClient({ initialCategories }: { initialCategories: Category
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">URL de imagen</label>
-                <input
-                  type="url" value={pImage} onChange={(e) => setPImage(e.target.value)} placeholder="https://..."
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-                />
-              </div>
+  <label className="block text-xs font-medium text-gray-500 mb-1">Imagen del producto</label>
+  {pImage && (
+    <div className="relative mb-2">
+      <img src={pImage} alt="preview" className="w-full h-32 object-cover rounded-xl" />
+      <button type="button" onClick={() => setPImage("")}
+        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600">
+        <X size={12} />
+      </button>
+    </div>
+  )}
+  <label className="flex items-center justify-center gap-2 w-full border-2 border-dashed border-gray-200 rounded-xl px-3 py-3 text-sm text-gray-400 hover:border-amber-400 hover:text-amber-500 cursor-pointer transition-colors">
+    <input type="file" accept="image/*" className="hidden"
+      onChange={async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const fd = new FormData();
+        fd.append("file", file);
+        setLoading(true);
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        const data = await res.json();
+        if (data.url) setPImage(data.url);
+        setLoading(false);
+      }}
+    />
+    {loading ? "Subiendo..." : "📷 Subir foto"}
+  </label>
+</div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={closeModal}
                   className="flex-1 border border-gray-200 text-gray-600 font-medium py-2.5 rounded-xl text-sm hover:bg-gray-50 transition-colors">
