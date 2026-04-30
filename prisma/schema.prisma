@@ -15,6 +15,7 @@ model Table {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   orders    Order[]
+  waiterCalls WaiterCall[]
 }
 
 model Category {
@@ -65,4 +66,12 @@ model OrderItem {
   quantity   Int
   unitPrice  Int
   subtotal   Int
+}
+
+model WaiterCall {
+  id        String   @id @default(cuid())
+  tableId   String
+  table     Table    @relation(fields: [tableId], references: [id])
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
 }

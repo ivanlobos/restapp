@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { ProductCard } from "@/components/customer/ProductCard";
 import { CartDrawer } from "@/components/customer/CartDrawer";
+import { WaiterButton } from "@/components/customer/WaiterButton";
 
 interface Product {
   id: string;
@@ -136,6 +137,7 @@ export function MenuClient({ categories, tableId, table }: MenuClientProps) {
       </div>
 
       <CartDrawer tableId={tableId} />
+       <WaiterButton tableId={tableId} /> 
     </div>
   );
 }
