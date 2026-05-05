@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import { formatCLP } from "@/lib/utils";
+import { PrintButton } from "./PrintButton";
 
 export const dynamic = "force-dynamic";
 
@@ -25,36 +25,22 @@ export default async function PrintPage({ params }: { params: Promise<{ id: stri
         .row { display: flex; justify-content: space-between; margin: 4px 0; }
         .item-name { font-size: 15px; font-weight: bold; }
         .qty { font-size: 22px; font-weight: bold; margin-right: 8px; }
-        @media print {
-          button { display: none !important; }
-        }
+        @media print { button { display: none !important; } }
       `}</style>
-
-      <div className="center bold big" style={{ marginBottom: 4 }}>
-        *** COMANDA ***
-      </div>
+      <div className="center bold big" style={{ marginBottom: 4 }}>*** COMANDA ***</div>
       <div className="center" style={{ marginBottom: 8 }}>
-        {new Date(order.createdAt).toLocaleString("es-CL", {
-          day: "2-digit", month: "2-digit", year: "numeric",
-          hour: "2-digit", minute: "2-digit"
-        })}
+        {new Date(order.createdAt).toLocaleString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
       </div>
-
       <div className="divider" />
-
       <div className="row">
         <span className="bold">Mesa:</span>
-        <span className="bold big">
-          {order.table.number}{order.table.label ? ` · ${order.table.label}` : ""}
-        </span>
+        <span className="bold big">{order.table.number}{order.table.label ? ` · ${order.table.label}` : ""}</span>
       </div>
       <div className="row">
         <span className="bold">Cliente:</span>
         <span>{order.customerName}</span>
       </div>
-
       <div className="divider" />
-
       <div style={{ marginBottom: 8 }}>
         {order.items.map((item) => (
           <div key={item.id} style={{ display: "flex", alignItems: "center", margin: "6px 0" }}>
@@ -63,30 +49,11 @@ export default async function PrintPage({ params }: { params: Promise<{ id: stri
           </div>
         ))}
       </div>
-
       <div className="divider" />
-
       <div className="center" style={{ marginTop: 8, fontSize: 12 }}>
         RestaurantApp · {order.id.slice(-6).toUpperCase()}
       </div>
-
-      {/* Botón imprimir — se oculta al imprimir */}
-      <button
-        onClick={() => window.print()}
-        style={{
-          marginTop: 20,
-          width: "100%",
-          padding: "10px",
-          background: "#111",
-          color: "#fff",
-          border: "none",
-          borderRadius: 8,
-          fontSize: 14,
-          cursor: "pointer"
-        }}
-      >
-        🖨️ Imprimir
-      </button>
+      <PrintButton />
     </>
   );
 }
