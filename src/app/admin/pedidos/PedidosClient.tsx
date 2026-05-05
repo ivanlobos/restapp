@@ -168,8 +168,11 @@ export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
                   </div>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${badgeColor[order.status] ?? ""}`}>
                     {statusLabel[order.status]}
-                  </span>
-                </div>
+                </span>
+              <a href={`/admin/pedidos/${order.id}/print`} target="_blank" className="text-xs text-gray-400 hover:text-gray-600 underline mt-1">
+            🖨️ Comanda
+          </a>  
+              </div>
 
                 {/* Items */}
                 <div className="space-y-1.5 mb-3">
