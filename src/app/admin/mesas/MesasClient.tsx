@@ -24,9 +24,9 @@ function getStatusConfig(status: "free" | "occupied" | "waiter") {
   }
 }
 
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: Date | string): string {
   const now = new Date();
-  const date = new Date(dateStr);
+  const date = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
   const diffMin = Math.floor((now.getTime() - date.getTime()) / 60000);
   if (diffMin < 1) return "ahora";
   if (diffMin < 60) return diffMin + " min";
