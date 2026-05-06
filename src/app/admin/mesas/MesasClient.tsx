@@ -5,8 +5,8 @@ import { QrCode, Plus, Trash2, X, Download, FileText, Users, Coffee, Bell, Clock
 import jsPDF from "jspdf";
 
 interface OrderItem { quantity: number }
-interface ActiveOrder { id: string; customerName: string; status: string; total: number; createdAt: string; items: OrderItem[] }
-interface WaiterCall { id: string; createdAt: string }
+interface ActiveOrder { id: string; customerName: string; status: string; total: number; createdAt: Date | string; items: OrderItem[] }
+interface WaiterCall { id: string; createdAt: Date | string }
 interface Table { id: string; number: number; label?: string | null; isActive: boolean; orders?: ActiveOrder[]; waiterCalls?: WaiterCall[] }
 type ViewMode = "map" | "list";
 
