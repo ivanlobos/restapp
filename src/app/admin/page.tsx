@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { formatCLP } from "@/lib/utils";
 import { ShoppingBag, CheckCircle, Clock, DollarSign } from "lucide-react";
+import { DailyCloseSection } from "./DailyCloseSection";
 
 export const dynamic = "force-dynamic";
 
@@ -57,11 +58,10 @@ export default async function AdminDashboard() {
         </p>
       </div>
 
-      {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${color}`}>
+            <div className={"w-10 h-10 rounded-xl flex items-center justify-center mb-3 " + color}>
               <Icon size={20} />
             </div>
             <p className="text-2xl font-bold text-gray-900">{value}</p>
@@ -70,7 +70,8 @@ export default async function AdminDashboard() {
         ))}
       </div>
 
-      {/* Recent orders */}
+      <DailyCloseSection />
+
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
         <div className="p-5 border-b border-gray-100">
           <h2 className="font-semibold text-gray-800">Pedidos recientes</h2>
@@ -84,7 +85,7 @@ export default async function AdminDashboard() {
               </div>
               <div className="flex items-center gap-3">
                 <span className="font-semibold text-sm text-amber-600">{formatCLP(order.total)}</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor[order.status] ?? "bg-gray-100 text-gray-700"}`}>
+                <span className={"text-xs px-2 py-0.5 rounded-full font-medium " + (statusColor[order.status] ?? "bg-gray-100 text-gray-700")}>
                   {statusLabel[order.status] ?? order.status}
                 </span>
               </div>

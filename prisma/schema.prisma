@@ -75,3 +75,15 @@ model WaiterCall {
   status    String   @default("PENDING")
   createdAt DateTime @default(now())
 }
+model DailyClose {
+  id            String   @id @default(cuid())
+  date          DateTime @unique
+  totalSales    Int
+  totalNet      Int
+  totalIVA      Int
+  totalTips     Int
+  orderCount    Int
+  avgTicket     Int
+  closedAt      DateTime @default(now())
+  closedBy      String   @default("Admin")
+}
