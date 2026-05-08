@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { HistorialClient } from "./HistorialClient";
 import { unstable_noStore as noStore } from "next/cache";
 
+export const dynamic = "force-dynamic";
+
 export default async function HistorialPage() {
   noStore();
   

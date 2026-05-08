@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { formatCLP } from "@/lib/utils";
 import { ShoppingBag, CheckCircle, Clock, DollarSign } from "lucide-react";
 import { DailyCloseSection } from "./DailyCloseSection";
+import { AnalyticsSection } from "./AnalyticsSection";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +72,7 @@ export default async function AdminDashboard() {
       </div>
 
       <DailyCloseSection />
-
+      <AnalyticsSection />
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
         <div className="p-5 border-b border-gray-100">
           <h2 className="font-semibold text-gray-800">Pedidos recientes</h2>

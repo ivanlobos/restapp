@@ -87,3 +87,8 @@ model DailyClose {
   closedAt      DateTime @default(now())
   closedBy      String   @default("Admin")
 }
+model Settings {
+  id            String   @id @default("singleton")
+  weekStartDay  Int      @default(1)
+  updatedAt     DateTime @updatedAt
+}

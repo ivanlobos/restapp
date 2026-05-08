@@ -65,7 +65,12 @@ async function main() {
     const existing = await prisma.product.findFirst({ where: { name: p.name, categoryId: p.categoryId } });
     if (!existing) await prisma.product.create({ data: p });
   }
-
+// Settings singleton
+  await prisma.settings.upsert({
+    where: { id: "singleton" },
+    update: {},
+    create: { id: "singleton", weekStartDay: 1 },
+  });
   console.log("✅ Database seeded successfully!");
 }
 

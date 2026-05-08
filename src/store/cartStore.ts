@@ -5,6 +5,16 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { CartStore } from "@/types";
 import { calcTip } from "@/lib/utils";
 
+const noopStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+};
+
+const storage = typeof window !== "undefined"
+  ? createJSONStorage(() => localStorage)
+  : createJSONStorage(() => noopStorage);
+
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
@@ -18,60 +28,52 @@ export const useCartStore = create<CartStore>()(
       setSession: (tableId, name, email?: string) => set({ tableId, customerName: name, email: email ?? null }),
 
       addItem: (product) => {
-        const items = get().items;
+        const { items } = get();
         const existing = items.find((i) => i.productId === product.id);
         if (existing) {
-          set({
-            items: items.map((i) =>
-              i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i
-            ),
-          });
+          set({ items: items.map((i) => i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i) });
         } else {
-          set({
-            items: [
-              ...items,
-              { productId: product.id, name: product.name, price: product.price, quantity: 1 },
-            ],
-          });
+          set({ items: [...items, { productId: product.id, name: product.name, price: product.price, quantity: 1 }] });
         }
       },
 
-      removeItem: (productId) =>
-        set({ items: get().items.filter((i) => i.productId !== productId) }),
+      removeItem: (productId) => set({ items: get().items.filter((i) => i.productId !== productId) }),
 
       updateQuantity: (productId, quantity) => {
         if (quantity <= 0) {
-          get().removeItem(productId);
-          return;
+          set({ items: get().items.filter((i) => i.productId !== productId) });
+        } else {
+          set({ items: get().items.map((i) => i.productId === productId ? { ...i, quantity } : i) });
         }
-        set({
-          items: get().items.map((i) =>
-            i.productId === productId ? { ...i, quantity } : i
-          ),
-        });
       },
 
       setIncludeTip: (include) => set({ includeTip: include }),
 
-      setTipPercent: (percent) => set({ tipPercent: percent, includeTip: percent > 0 }),
+      setTipPercent: (percent) => set({ tipPercent: percent }),
 
-      clearCart: () => set({ items: [], includeTip: true, tipPercent: 10 }),
+      clearCart: () => set({ items: [], tableId: null, customerName: null, email: null }),
 
-      getSubtotal: () =>
-        get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
-
-      getTip: () => {
-        const subtotal = get().getSubtotal();
-        return get().includeTip ? calcTip(subtotal, get().tipPercent) : 0;
+      getSubtotal: () => {
+        const { items } = get();
+        return items.reduce((s, i) => s + i.price * i.quantity, 0);
       },
 
-      getTotal: () => get().getSubtotal() + get().getTip(),
+      getTip: () => {
+        const { items, tipPercent, includeTip } = get();
+        if (!includeTip) return 0;
+        const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
+        return calcTip(subtotal, tipPercent);
+      },
+
+      getTotal: () => {
+        const { items, includeTip, tipPercent } = get();
+        const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
+        return subtotal + (includeTip ? calcTip(subtotal, tipPercent) : 0);
+      },
     }),
     {
-      name: "restaurant-cart",
-      storage: createJSONStorage(() =>
-        typeof window !== "undefined" ? sessionStorage : localStorage
-      ),
+      name: "cart-storage",
+      storage,
     }
   )
 );
