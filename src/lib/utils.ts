@@ -14,6 +14,6 @@ export function formatCLP(amount: number): string {
   }).format(amount);
 }
 
-export function calcTip(subtotal: number): number {
-  return Math.round(subtotal * 0.1);
+export function calcTip(subtotal: number, percent: number = 10): number {
+  return Math.round(subtotal * percent / 100);
 }

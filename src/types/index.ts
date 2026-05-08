@@ -19,11 +19,13 @@ export interface CartStore {
   email: string | null;
   items: CartItem[];
   includeTip: boolean;
+  tipPercent: number;
   setSession: (tableId: string, name: string, email?: string) => void;
   addItem: (product: { id: string; name: string; price: number }) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   setIncludeTip: (include: boolean) => void;
+  setTipPercent: (percent: number) => void;
   clearCart: () => void;
   getSubtotal: () => number;
   getTip: () => number;

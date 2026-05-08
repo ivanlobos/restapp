@@ -10,10 +10,12 @@ interface CartDrawerProps {
   tableId?: string;
 }
 
+const TIP_OPTIONS = [0, 5, 10, 15];
+
 export function CartDrawer({ tableId: propTableId }: CartDrawerProps) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
-  const { items, updateQuantity, removeItem, includeTip, setIncludeTip, getSubtotal, getTip, getTotal, tableId: storeTableId } = useCartStore();
+  const { items, updateQuantity, removeItem, tipPercent, setTipPercent, getSubtotal, getTip, getTotal, tableId: storeTableId } = useCartStore();
   const tableId = storeTableId ?? propTableId;
 
   const subtotal = getSubtotal();
@@ -27,7 +29,6 @@ export function CartDrawer({ tableId: propTableId }: CartDrawerProps) {
 
   return (
     <>
-      {/* Floating cart button */}
       {!open && itemCount > 0 && (
         <button
           onClick={() => setOpen(true)}
@@ -39,7 +40,6 @@ export function CartDrawer({ tableId: propTableId }: CartDrawerProps) {
         </button>
       )}
 
-      {/* Drawer backdrop */}
       {open && (
         <div
           className="fixed inset-0 z-40 bg-black/40"
@@ -47,7 +47,6 @@ export function CartDrawer({ tableId: propTableId }: CartDrawerProps) {
         />
       )}
 
-      {/* Drawer panel */}
       <div
         className={`fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl transition-transform duration-300 max-h-[85vh] flex flex-col ${
           open ? "translate-y-0" : "translate-y-full"
@@ -95,36 +94,37 @@ export function CartDrawer({ tableId: propTableId }: CartDrawerProps) {
           ))}
         </div>
 
-        {/* Summary */}
         <div className="p-4 border-t space-y-2 bg-gray-50">
           <div className="flex justify-between text-sm text-gray-600">
             <span>Subtotal</span>
             <span>{formatCLP(subtotal)}</span>
           </div>
 
-          {/* Tip toggle */}
-          <div className="flex items-center justify-between py-2 px-3 bg-amber-50 rounded-lg border border-amber-100">
-            <div>
-              <p className="text-sm font-medium text-gray-800">Propina sugerida (10%)</p>
-              <p className="text-xs text-gray-500">{formatCLP(Math.round(subtotal * 0.1))}</p>
+          <div className="bg-amber-50 border border-amber-100 rounded-lg p-3">
+            <p className="text-sm font-medium text-gray-800 mb-2">Propina</p>
+            <div className="flex gap-2">
+              {TIP_OPTIONS.map((pct) => (
+                <button
+                  key={pct}
+                  onClick={() => setTipPercent(pct)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                    tipPercent === pct
+                      ? "bg-amber-500 text-white shadow-sm"
+                      : "bg-white text-gray-600 border border-gray-200 hover:border-amber-300"
+                  }`}
+                >
+                  {pct === 0 ? "Sin" : pct + "%"}
+                </button>
+              ))}
             </div>
-            <button
-              onClick={() => setIncludeTip(!includeTip)}
-              className={`relative w-11 h-6 rounded-full transition-colors ${
-                includeTip ? "bg-amber-500" : "bg-gray-300"
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                  includeTip ? "translate-x-5" : "translate-x-0"
-                }`}
-              />
-            </button>
+            {tipPercent > 0 && (
+              <p className="text-xs text-amber-600 mt-2 text-right">+ {formatCLP(tip)}</p>
+            )}
           </div>
 
-          {includeTip && (
+          {tipPercent > 0 && (
             <div className="flex justify-between text-sm text-amber-600">
-              <span>Propina</span>
+              <span>Propina ({tipPercent}%)</span>
               <span>+ {formatCLP(tip)}</span>
             </div>
           )}

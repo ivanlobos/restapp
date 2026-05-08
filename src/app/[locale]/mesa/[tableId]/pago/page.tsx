@@ -19,7 +19,7 @@ const stripePromise = isMockMode ? null : loadStripe(STRIPE_KEY);
 export default function PagoPage({ params }: { params: Promise<{ tableId: string }> }) {
   const { tableId } = use(params);
   const router = useRouter();
-  const { customerName, email, tableId: storeTableId, items, includeTip, getSubtotal, getTip, getTotal } = useCartStore();
+  const { customerName, email, tableId: storeTableId, items, includeTip, tipPercent, getSubtotal, getTip, getTotal } = useCartStore();
 
   const [orderId, setOrderId] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -149,7 +149,7 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
             </div>
             {includeTip && (
               <div className="flex justify-between text-sm text-amber-600">
-                <span>Propina (10%)</span>
+                <span>Propina ({tipPercent}%)</span>
                 <span>+ {formatCLP(tip)}</span>
               </div>
             )}
@@ -207,3 +207,4 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
     </div>
   );
 }
+-

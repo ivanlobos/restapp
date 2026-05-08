@@ -10,32 +10,27 @@ export const useCartStore = create<CartStore>()(
     (set, get) => ({
       tableId: null,
       customerName: null,
-    email: null as string | null,
+      email: null as string | null,
       items: [],
       includeTip: true,
+      tipPercent: 10,
 
       setSession: (tableId, name, email?: string) => set({ tableId, customerName: name, email: email ?? null }),
+
       addItem: (product) => {
         const items = get().items;
         const existing = items.find((i) => i.productId === product.id);
         if (existing) {
           set({
             items: items.map((i) =>
-              i.productId === product.id
-                ? { ...i, quantity: i.quantity + 1 }
-                : i
+              i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i
             ),
           });
         } else {
           set({
             items: [
               ...items,
-              {
-                productId: product.id,
-                name: product.name,
-                price: product.price,
-                quantity: 1,
-              },
+              { productId: product.id, name: product.name, price: product.price, quantity: 1 },
             ],
           });
         }
@@ -58,14 +53,16 @@ export const useCartStore = create<CartStore>()(
 
       setIncludeTip: (include) => set({ includeTip: include }),
 
-      clearCart: () => set({ items: [], includeTip: true }),
+      setTipPercent: (percent) => set({ tipPercent: percent, includeTip: percent > 0 }),
+
+      clearCart: () => set({ items: [], includeTip: true, tipPercent: 10 }),
 
       getSubtotal: () =>
         get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
 
       getTip: () => {
         const subtotal = get().getSubtotal();
-        return get().includeTip ? calcTip(subtotal) : 0;
+        return get().includeTip ? calcTip(subtotal, get().tipPercent) : 0;
       },
 
       getTotal: () => get().getSubtotal() + get().getTip(),
