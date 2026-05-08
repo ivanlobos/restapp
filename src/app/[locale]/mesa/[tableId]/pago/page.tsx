@@ -207,4 +207,3 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
     </div>
   );
 }
--
