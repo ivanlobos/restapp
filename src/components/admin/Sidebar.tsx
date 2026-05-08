@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Table2, UtensilsCrossed, ClipboardList, History } from "lucide-react";
+import { LayoutDashboard, Table2, UtensilsCrossed, ClipboardList, History, Settings } from "lucide-react";
 
 const links = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -10,6 +10,7 @@ const links = [
   { href: "/admin/carta", label: "Carta", icon: UtensilsCrossed },
   { href: "/admin/pedidos", label: "Pedidos", icon: ClipboardList },
   { href: "/admin/historial", label: "Historial", icon: History },
+  { href: "/admin/configuracion", label: "Configuración", icon: Settings },
 ];
 
 export function Sidebar() {
