@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 function startOfDay(d: Date) {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
@@ -43,21 +45,15 @@ export async function GET() {
   const tomorrow = startOfDay(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  // Semana actual: desde el inicio de la semana configurada hasta mañana
   const thisWeekStart = getWeekStart(now, weekStartDay);
 
-  // Semana anterior: misma cantidad de días
   const lastWeekStart = new Date(thisWeekStart);
   lastWeekStart.setDate(lastWeekStart.getDate() - 7);
-  // Comparativo: mismos N días transcurridos de la semana anterior
   const daysElapsed = Math.floor((now.getTime() - thisWeekStart.getTime()) / 86400000) + 1;
   const lastWeekSameEnd = new Date(lastWeekStart);
   lastWeekSameEnd.setDate(lastWeekSameEnd.getDate() + daysElapsed);
 
-  // Mes actual: día 1 hasta mañana
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-  // Mes anterior: mismos N días transcurridos
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const dayOfMonth = now.getDate();
   const lastMonthSameEnd = new Date(lastMonthStart);
@@ -70,11 +66,8 @@ export async function GET() {
     fetchPeriod(lastMonthStart, lastMonthSameEnd),
   ]);
 
-  return NextResponse.json({
-    weekStartDay,
-    thisWeek,
-    lastWeekSame,
-    thisMonth,
-    lastMonthSame,
-  });
+  return NextResponse.json(
+    { weekStartDay, thisWeek, lastWeekSame, thisMonth, lastMonthSame },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
