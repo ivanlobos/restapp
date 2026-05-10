@@ -1,11 +1,22 @@
 import { prisma } from "@/lib/prisma";
 import { PedidosClient } from "./PedidosClient";
+import { requireTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
-export default async function PedidosPage() {
+type PedidosPageProps = {
+  params: Promise<{ tenant: string }>;
+};
+
+export default async function PedidosPage({ params }: PedidosPageProps) {
+  const { tenant: tenantSlug } = await params;
+  const tenant = await requireTenant(tenantSlug);
+
   const orders = await prisma.order.findMany({
-    where: { status: { in: ["PENDING", "PROCESSING", "PAID", "PREPARING"] } },
+    where: {
+      tenantId: tenant.id,
+      status: { in: ["PENDING", "PROCESSING", "PAID", "PREPARING"] },
+    },
     orderBy: { createdAt: "desc" },
     include: {
       table: true,

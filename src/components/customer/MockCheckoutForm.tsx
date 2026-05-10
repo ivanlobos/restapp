@@ -9,6 +9,8 @@ interface MockCheckoutFormProps {
   total: number;
   tableId: string;
   orderId: string;
+  tenantSlug: string;
+  locale: string;
 }
 
 function formatCardNumber(value: string) {
@@ -25,7 +27,7 @@ function formatExpiry(value: string) {
   return digits;
 }
 
-export function MockCheckoutForm({ total, tableId, orderId }: MockCheckoutFormProps) {
+export function MockCheckoutForm({ total, tableId, orderId, tenantSlug, locale }: MockCheckoutFormProps) {
   const router = useRouter();
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
@@ -49,7 +51,7 @@ export function MockCheckoutForm({ total, tableId, orderId }: MockCheckoutFormPr
       const res = await fetch("/api/payments/mock", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId }),
+        body: JSON.stringify({ orderId, tenantSlug }),
       });
 
       if (!res.ok) {
@@ -57,7 +59,7 @@ export function MockCheckoutForm({ total, tableId, orderId }: MockCheckoutFormPr
         throw new Error(data.error ?? "Error al procesar el pago");
       }
 
-      router.push(`/mesa/${tableId}/gracias?order=${orderId}`);
+      router.push(`/${locale}/${tenantSlug}/mesa/${tableId}/gracias?order=${orderId}`);
     } catch (err) {
       setError((err as Error).message);
       setLoading(false);
@@ -69,7 +71,6 @@ export function MockCheckoutForm({ total, tableId, orderId }: MockCheckoutFormPr
       {/* Mock mode notice */}
       <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
         <span className="text-blue-500 text-xs font-bold uppercase tracking-wide">Modo prueba</span>
-        <span className="text-blue-600 text-xs">— Ingresa cualquier dato para simular el pago</span>
       </div>
 
       {/* Card number */}
@@ -119,7 +120,7 @@ export function MockCheckoutForm({ total, tableId, orderId }: MockCheckoutFormPr
         <label className="block text-xs font-medium text-gray-500 mb-1">Nombre en la tarjeta</label>
         <input
           type="text"
-          placeholder="JUAN PÉREZ"
+          placeholder="JUAN PEREZ"
           value={name}
           onChange={(e) => setName(e.target.value.toUpperCase())}
           className="w-full px-3 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 uppercase tracking-wide"

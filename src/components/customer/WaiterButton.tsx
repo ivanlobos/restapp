@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { BellRing, Check } from "lucide-react";
 
-export function WaiterButton({ tableId }: { tableId: string }) {
+interface WaiterButtonProps {
+  tableId: string;
+  tenantSlug: string;
+}
+
+export function WaiterButton({ tableId, tenantSlug }: WaiterButtonProps) {
   const [status, setStatus] = useState<"idle" | "loading" | "sent">("idle");
 
   const handleCall = async () => {
@@ -13,7 +18,7 @@ export function WaiterButton({ tableId }: { tableId: string }) {
       await fetch("/api/waiter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tableId }),
+        body: JSON.stringify({ tableId, tenantSlug }),
       });
       setStatus("sent");
       setTimeout(() => setStatus("idle"), 10000);

@@ -1,7 +1,6 @@
 "use client";
-
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { ProductCard } from "@/components/customer/ProductCard";
 import { CartDrawer } from "@/components/customer/CartDrawer";
@@ -31,23 +30,24 @@ interface MenuClientProps {
   categories: Category[];
   tableId: string;
   table: Table;
+  tenantSlug: string;
 }
 
-export function MenuClient({ categories, tableId, table }: MenuClientProps) {
+export default function MenuClient({ categories, tableId, table, tenantSlug }: MenuClientProps) {
   const router = useRouter();
-  const { customerName, tableId: storeTableId, setSession } = useCartStore();
+  const params = useParams();
+  const locale = (params?.locale as string) ?? "es";
+  const { customerName, tableId: storeTableId, tenantSlug: storeTenantSlug } = useCartStore();
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id ?? "");
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const tabsRef = useRef<HTMLDivElement>(null);
 
-  // Guard: if no name in store, redirect to entry
   useEffect(() => {
-    if (!customerName || storeTableId !== tableId) {
-      router.replace(`/mesa/${tableId}`);
+    if (!customerName || storeTableId !== tableId || storeTenantSlug !== tenantSlug) {
+      router.replace(`/${locale}/${tenantSlug}/mesa/${tableId}`);
     }
-  }, [customerName, storeTableId, tableId, router]);
+  }, [customerName, storeTableId, storeTenantSlug, tableId, tenantSlug, locale, router]);
 
-  // Intersection observer to update active tab
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -69,7 +69,7 @@ export function MenuClient({ categories, tableId, table }: MenuClientProps) {
   const scrollToCategory = (id: string) => {
     const el = sectionRefs.current[id];
     if (el) {
-      const offset = 110; // tabs + header height
+      const offset = 110;
       const top = el.getBoundingClientRect().top + window.scrollY - offset;
       window.scrollTo({ top, behavior: "smooth" });
     }
@@ -79,7 +79,6 @@ export function MenuClient({ categories, tableId, table }: MenuClientProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-28">
-      {/* Header */}
       <div className="bg-amber-500 text-white px-4 pt-10 pb-4">
         <p className="text-amber-100 text-sm">Hola, {customerName} 👋</p>
         <h1 className="text-xl font-bold">
@@ -87,7 +86,6 @@ export function MenuClient({ categories, tableId, table }: MenuClientProps) {
         </h1>
       </div>
 
-      {/* Category tabs - sticky */}
       <div
         ref={tabsRef}
         className="sticky top-0 z-30 bg-white border-b border-gray-200 overflow-x-auto flex gap-1 px-3 py-2 scrollbar-hide shadow-sm"
@@ -107,7 +105,6 @@ export function MenuClient({ categories, tableId, table }: MenuClientProps) {
         ))}
       </div>
 
-      {/* Menu sections */}
       <div className="px-4 py-4 space-y-8">
         {categories.map((category) => (
           <section
@@ -136,8 +133,8 @@ export function MenuClient({ categories, tableId, table }: MenuClientProps) {
         )}
       </div>
 
-      <CartDrawer tableId={tableId} />
-       <WaiterButton tableId={tableId} /> 
+      <CartDrawer tableId={tableId} tenantSlug={tenantSlug} />
+      <WaiterButton tableId={tableId} tenantSlug={tenantSlug} />
     </div>
   );
 }

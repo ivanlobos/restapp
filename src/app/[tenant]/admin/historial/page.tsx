@@ -1,14 +1,21 @@
 import { prisma } from "@/lib/prisma";
 import { HistorialClient } from "./HistorialClient";
 import { unstable_noStore as noStore } from "next/cache";
+import { requireTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
-export default async function HistorialPage() {
+type HistorialPageProps = {
+  params: Promise<{ tenant: string }>;
+};
+
+export default async function HistorialPage({ params }: HistorialPageProps) {
   noStore();
-  
+  const { tenant: tenantSlug } = await params;
+  const tenant = await requireTenant(tenantSlug);
+
   const pedidos = await prisma.order.findMany({
-    where: { status: "DELIVERED" },
+    where: { tenantId: tenant.id, status: "DELIVERED" },
     orderBy: { createdAt: "desc" },
     include: {
       table: true,

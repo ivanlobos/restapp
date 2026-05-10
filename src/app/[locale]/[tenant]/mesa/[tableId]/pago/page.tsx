@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import { useCartStore } from "@/store/cartStore";
@@ -19,7 +19,21 @@ const stripePromise = isMockMode ? null : loadStripe(STRIPE_KEY);
 export default function PagoPage({ params }: { params: Promise<{ tableId: string }> }) {
   const { tableId } = use(params);
   const router = useRouter();
-  const { customerName, email, tableId: storeTableId, items, includeTip, tipPercent, getSubtotal, getTip, getTotal } = useCartStore();
+  const routeParams = useParams();
+  const locale = (routeParams?.locale as string) ?? "es";
+  const tenantSlug = (routeParams?.tenant as string) ?? "";
+  const {
+    customerName,
+    email,
+    tableId: storeTableId,
+    tenantSlug: storeTenantSlug,
+    items,
+    includeTip,
+    tipPercent,
+    getSubtotal,
+    getTip,
+    getTotal,
+  } = useCartStore();
 
   const [orderId, setOrderId] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -31,8 +45,8 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
   const total = getTotal();
 
   useEffect(() => {
-    if (!customerName || storeTableId !== tableId || items.length === 0) {
-      router.replace(`/mesa/${tableId}`);
+    if (!customerName || storeTableId !== tableId || storeTenantSlug !== tenantSlug || items.length === 0) {
+      router.replace(`/${locale}/${tenantSlug}/mesa/${tableId}`);
       return;
     }
 
@@ -42,12 +56,13 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
         const orderRes = await fetch("/api/orders", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tableId,
-          customerName,
-          email: email ?? undefined,
-          includeTip,
-          items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+          body: JSON.stringify({
+            tenantSlug,
+            tableId,
+            customerName,
+            email: email ?? undefined,
+            includeTip,
+            items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
           }),
         });
 
@@ -64,7 +79,7 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
           const intentRes = await fetch("/api/payments/create-intent", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ orderId: order.id }),
+            body: JSON.stringify({ tenantSlug, orderId: order.id }),
           });
 
           if (!intentRes.ok) {
@@ -105,7 +120,7 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
           <h2 className="font-bold text-lg text-gray-900 mb-2">Hubo un problema</h2>
           <p className="text-gray-500 text-sm mb-6">{error}</p>
           <Link
-            href={`/mesa/${tableId}/menu`}
+            href={`/${locale}/${tenantSlug}/mesa/${tableId}/menu`}
             className="bg-amber-500 text-white font-semibold px-6 py-3 rounded-xl inline-block"
           >
             Volver a la carta
@@ -118,7 +133,7 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-amber-500 text-white px-4 pt-10 pb-4 flex items-center gap-3">
-        <Link href={`/mesa/${tableId}/menu`} className="p-1 rounded-full hover:bg-amber-600">
+        <Link href={`/${locale}/${tenantSlug}/mesa/${tableId}/menu`} className="p-1 rounded-full hover:bg-amber-600">
           <ArrowLeft size={22} />
         </Link>
         <div>
@@ -137,7 +152,7 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
           <div className="space-y-2">
             {items.map((item) => (
               <div key={item.productId} className="flex justify-between text-sm">
-                <span className="text-gray-600">{item.name} × {item.quantity}</span>
+                <span className="text-gray-600">{item.quantity} × {item.name}</span>
                 <span className="font-medium">{formatCLP(item.price * item.quantity)}</span>
               </div>
             ))}
@@ -165,7 +180,13 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
           <h2 className="font-semibold text-gray-800 mb-4">Datos de pago</h2>
 
           {orderId && isMockMode && (
-            <MockCheckoutForm total={total} tableId={tableId} orderId={orderId} />
+            <MockCheckoutForm
+              total={total}
+              tableId={tableId}
+              orderId={orderId}
+              tenantSlug={tenantSlug}
+              locale={locale}
+            />
           )}
 
           {orderId && !isMockMode && clientSecret && stripePromise && (
@@ -179,29 +200,37 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
                 },
               }}
             >
-              <CheckoutForm total={total} tableId={tableId} orderId={orderId} />
+              <CheckoutForm
+                total={total}
+                tableId={tableId}
+                orderId={orderId}
+                tenantSlug={tenantSlug}
+                locale={locale}
+              />
             </Elements>
           )}
+
           {orderId && (
-    <div className="mt-4">
-    <div className="flex items-center gap-2 my-3">
-      <div className="flex-1 border-t border-gray-200" />
-      <span className="text-sm text-gray-400">o paga con</span>
-      <div className="flex-1 border-t border-gray-200" />
-    </div>
-    <MercadoPagoButton
-      total={total}
-      tableId={tableId}
-      orderId={orderId}
-      items={items.map((i) => ({
-        productId: i.productId,
-        name: i.name,
-        quantity: i.quantity,
-        price: i.price,
-      }))}
-    />
-  </div>
-)}
+            <div className="mt-4">
+              <div className="flex items-center gap-2 my-3">
+                <div className="flex-1 border-t border-gray-200" />
+                <span className="text-sm text-gray-400">o paga con</span>
+                <div className="flex-1 border-t border-gray-200" />
+              </div>
+              <MercadoPagoButton
+                total={total}
+                tableId={tableId}
+                orderId={orderId}
+                tenantSlug={tenantSlug}
+                items={items.map((i) => ({
+                  productId: i.productId,
+                  name: i.name,
+                  quantity: i.quantity,
+                  price: i.price,
+                }))}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

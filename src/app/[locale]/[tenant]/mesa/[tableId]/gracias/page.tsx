@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useParams } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { CheckCircle } from "lucide-react";
 import Link from "next/link";
@@ -9,8 +9,11 @@ import { Suspense } from "react";
 
 function GraciasContent({ tableId }: { tableId: string }) {
   const searchParams = useSearchParams();
+  const params = useParams();
   const orderId = searchParams.get("order");
   const clearCart = useCartStore((s) => s.clearCart);
+  const locale = (params?.locale as string) ?? "es";
+  const tenantSlug = (params?.tenant as string) ?? "";
 
   useEffect(() => {
     clearCart();
@@ -33,7 +36,7 @@ function GraciasContent({ tableId }: { tableId: string }) {
         )}
 
         <Link
-          href={`/mesa/${tableId}`}
+          href={`/${locale}/${tenantSlug}/mesa/${tableId}`}
           className="bg-amber-500 hover:bg-amber-600 text-white font-bold px-8 py-3 rounded-xl inline-block transition-colors"
         >
           Nuevo pedido

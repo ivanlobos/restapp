@@ -3,22 +3,49 @@ import { formatCLP } from "@/lib/utils";
 import { ShoppingBag, CheckCircle, Clock, DollarSign } from "lucide-react";
 import { DailyCloseSection } from "./DailyCloseSection";
 import { AnalyticsSection } from "./AnalyticsSection";
+import { requireTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminDashboard() {
+type AdminDashboardProps = {
+  params: Promise<{ tenant: string }>;
+};
+
+export default async function AdminDashboard({ params }: AdminDashboardProps) {
+  const { tenant: tenantSlug } = await params;
+  const tenant = await requireTenant(tenantSlug);
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const [totalOrders, paidOrders, pendingOrders, todayRevenue, recentOrders] = await Promise.all([
-    prisma.order.count({ where: { createdAt: { gte: today } } }),
-    prisma.order.count({ where: { status: { in: ["PAID", "PREPARING", "DELIVERED"] }, createdAt: { gte: today } } }),
-    prisma.order.count({ where: { status: { in: ["PENDING", "PROCESSING"] }, createdAt: { gte: today } } }),
+    prisma.order.count({
+      where: { tenantId: tenant.id, createdAt: { gte: today } },
+    }),
+    prisma.order.count({
+      where: {
+        tenantId: tenant.id,
+        status: { in: ["PAID", "PREPARING", "DELIVERED"] },
+        createdAt: { gte: today },
+      },
+    }),
+    prisma.order.count({
+      where: {
+        tenantId: tenant.id,
+        status: { in: ["PENDING", "PROCESSING"] },
+        createdAt: { gte: today },
+      },
+    }),
     prisma.order.aggregate({
-      where: { status: { in: ["PAID", "PREPARING", "DELIVERED"] }, createdAt: { gte: today } },
+      where: {
+        tenantId: tenant.id,
+        status: { in: ["PAID", "PREPARING", "DELIVERED"] },
+        createdAt: { gte: today },
+      },
       _sum: { total: true },
     }),
     prisma.order.findMany({
+      where: { tenantId: tenant.id },
       take: 10,
       orderBy: { createdAt: "desc" },
       include: { table: true },

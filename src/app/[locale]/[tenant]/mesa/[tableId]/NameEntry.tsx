@@ -9,6 +9,7 @@ interface NameEntryProps {
   tableId: string;
   tableNumber: number;
   locale: string;
+  tenantSlug: string;
   texts: {
     title: string;
     placeholder: string;
@@ -20,7 +21,7 @@ interface NameEntryProps {
   };
 }
 
-export function NameEntry({ tableId, tableNumber, locale, texts }: NameEntryProps) {
+export function NameEntry({ tableId, tableNumber, locale, tenantSlug, texts }: NameEntryProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [wantsEmail, setWantsEmail] = useState(false);
@@ -31,8 +32,8 @@ export function NameEntry({ tableId, tableNumber, locale, texts }: NameEntryProp
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) return;
-    setSession(tableId, trimmed, wantsEmail && email.trim() ? email.trim() : undefined);
-    router.push(`/${locale}/mesa/${tableId}/menu`);
+    setSession(tenantSlug, tableId, trimmed, wantsEmail && email.trim() ? email.trim() : undefined);
+    router.push(`/${locale}/${tenantSlug}/mesa/${tableId}/menu`);
   };
 
   return (

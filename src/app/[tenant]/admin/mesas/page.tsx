@@ -1,14 +1,24 @@
 import { prisma } from "@/lib/prisma";
 import { MesasClient } from "./MesasClient";
+import { requireTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
-export default async function MesasPage() {
+type MesasPageProps = {
+  params: Promise<{ tenant: string }>;
+};
+
+export default async function MesasPage({ params }: MesasPageProps) {
+  const { tenant: tenantSlug } = await params;
+  const tenant = await requireTenant(tenantSlug);
+
   const tables = await prisma.table.findMany({
+    where: { tenantId: tenant.id },
     orderBy: { number: "asc" },
     include: {
       orders: {
         where: {
+          tenantId: tenant.id,
           status: {
             in: ["PENDING", "PROCESSING", "PREPARING", "PAID"],
           },
@@ -30,6 +40,7 @@ export default async function MesasPage() {
       },
       waiterCalls: {
         where: {
+          tenantId: tenant.id,
           status: "PENDING",
         },
         select: {

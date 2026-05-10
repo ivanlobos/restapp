@@ -1,20 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { ShoppingCart, X, Plus, Minus, Trash2 } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { formatCLP } from "@/lib/utils";
 
 interface CartDrawerProps {
   tableId?: string;
+  tenantSlug: string;
 }
 
 const TIP_OPTIONS = [0, 5, 10, 15];
 
-export function CartDrawer({ tableId: propTableId }: CartDrawerProps) {
+export function CartDrawer({ tableId: propTableId, tenantSlug }: CartDrawerProps) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const params = useParams();
+  const locale = (params?.locale as string) ?? "es";
   const { items, updateQuantity, removeItem, tipPercent, setTipPercent, getSubtotal, getTip, getTotal, tableId: storeTableId } = useCartStore();
   const tableId = storeTableId ?? propTableId;
 
@@ -137,7 +140,7 @@ export function CartDrawer({ tableId: propTableId }: CartDrawerProps) {
           <button
             onClick={() => {
               setOpen(false);
-              router.push(`/mesa/${tableId}/pago`);
+              router.push(`/${locale}/${tenantSlug}/mesa/${tableId}/pago`);
             }}
             className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl transition-colors mt-2"
           >

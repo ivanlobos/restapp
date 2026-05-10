@@ -18,6 +18,7 @@ const storage = typeof window !== "undefined"
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
+      tenantSlug: null,
       tableId: null,
       customerName: null,
       email: null as string | null,
@@ -25,7 +26,12 @@ export const useCartStore = create<CartStore>()(
       includeTip: true,
       tipPercent: 10,
 
-      setSession: (tableId, name, email?: string) => set({ tableId, customerName: name, email: email ?? null }),
+      setSession: (tenantSlug, tableId, name, email?: string) => set({
+        tenantSlug,
+        tableId,
+        customerName: name,
+        email: email ?? null,
+      }),
 
       addItem: (product) => {
         const { items } = get();
@@ -51,7 +57,7 @@ export const useCartStore = create<CartStore>()(
 
       setTipPercent: (percent) => set({ tipPercent: percent }),
 
-      clearCart: () => set({ items: [], tableId: null, customerName: null, email: null }),
+      clearCart: () => set({ items: [], tableId: null, customerName: null, email: null, tenantSlug: null }),
 
       getSubtotal: () => {
         const { items } = get();
@@ -68,11 +74,12 @@ export const useCartStore = create<CartStore>()(
       getTotal: () => {
         const { items, includeTip, tipPercent } = get();
         const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
-        return subtotal + (includeTip ? calcTip(subtotal, tipPercent) : 0);
+        const tip = includeTip ? calcTip(subtotal, tipPercent) : 0;
+        return subtotal + tip;
       },
     }),
     {
-      name: "cart-storage",
+      name: "cart-storage-v2",
       storage,
     }
   )

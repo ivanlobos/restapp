@@ -2,14 +2,21 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { NameEntry } from "./NameEntry";
 import { getTranslations } from "next-intl/server";
+import { requireTenant } from "@/lib/tenant";
 
-export default async function TablePage({ params }: { params: Promise<{ tableId: string; locale: string }> }) {
-  const { tableId, locale } = await params;
+export default async function TablePage({
+  params,
+}: {
+  params: Promise<{ tableId: string; locale: string; tenant: string }>;
+}) {
+  const { tableId, locale, tenant: tenantSlug } = await params;
+  const tenant = await requireTenant(tenantSlug);
+
   const t = await getTranslations({ locale, namespace: "TablePage" });
   const tName = await getTranslations({ locale, namespace: "NameEntry" });
 
   const table = await prisma.table.findUnique({ where: { id: tableId } });
-  if (!table || !table.isActive) notFound();
+  if (!table || !table.isActive || table.tenantId !== tenant.id) notFound();
 
   const texts = {
     title: tName("title"),
@@ -26,7 +33,7 @@ export default async function TablePage({ params }: { params: Promise<{ tableId:
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-amber-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <span className="text-4xl">🍽</span>
+            <span className="text-4xl">🍽️</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">{t("welcome")}</h1>
           <p className="text-gray-500 mt-1">
@@ -34,7 +41,13 @@ export default async function TablePage({ params }: { params: Promise<{ tableId:
           </p>
         </div>
 
-        <NameEntry tableId={tableId} tableNumber={table.number} locale={locale} texts={texts} />
+        <NameEntry
+          tableId={tableId}
+          tableNumber={table.number}
+          locale={locale}
+          tenantSlug={tenantSlug}
+          texts={texts}
+        />
       </div>
     </div>
   );
