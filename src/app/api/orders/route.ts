@@ -1,14 +1,25 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { calcTip } from "@/lib/utils";
+import { getTenantBySlug } from "@/lib/tenant";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
+  const tenantSlug = searchParams.get("tenantSlug");
   const tableId = searchParams.get("tableId");
   const status = searchParams.get("status");
   const date = searchParams.get("date");
 
-  const where: Record<string, unknown> = {};
+  if (!tenantSlug) {
+    return NextResponse.json({ error: "tenantSlug requerido" }, { status: 400 });
+  }
+
+  const tenant = await getTenantBySlug(tenantSlug);
+  if (!tenant) {
+    return NextResponse.json({ error: "Tenant no encontrado" }, { status: 404 });
+  }
+
+  const where: Record<string, unknown> = { tenantId: tenant.id };
   if (tableId) where.tableId = tableId;
   if (status) where.status = { in: status.split(",") };
   if (date) {
@@ -31,21 +42,31 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const { tableId, customerName, items, includeTip } = body;
+  const { tenantSlug, tableId, customerName, items, includeTip, email } = body;
+
+  if (!tenantSlug) {
+    return NextResponse.json({ error: "tenantSlug requerido" }, { status: 400 });
+  }
+
+  const tenant = await getTenantBySlug(tenantSlug);
+  if (!tenant) {
+    return NextResponse.json({ error: "Tenant no encontrado" }, { status: 404 });
+  }
 
   if (!tableId || !customerName || !items || items.length === 0) {
     return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
   }
 
+  // Validar que la mesa pertenezca al tenant
   const table = await prisma.table.findUnique({ where: { id: tableId } });
-  if (!table || !table.isActive) {
+  if (!table || !table.isActive || table.tenantId !== tenant.id) {
     return NextResponse.json({ error: "Mesa no válida" }, { status: 404 });
   }
 
-  // Fetch products to validate prices
+  // Fetch products del tenant para validar precios
   const productIds = items.map((i: { productId: string }) => i.productId);
   const products = await prisma.product.findMany({
-    where: { id: { in: productIds }, isAvailable: true },
+    where: { id: { in: productIds }, tenantId: tenant.id, isAvailable: true },
   });
 
   if (products.length !== productIds.length) {
@@ -73,8 +94,10 @@ export async function POST(req: Request) {
   const order = await prisma.$transaction(async (tx) => {
     const newOrder = await tx.order.create({
       data: {
+        tenantId: tenant.id,
         tableId,
         customerName,
+        email: email ?? null,
         subtotal,
         tipAmount,
         total,
