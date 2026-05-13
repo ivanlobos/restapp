@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
 import { TrendingUp, TrendingDown, Minus, BarChart2, RefreshCw } from "lucide-react";
 
 function formatCLP(value: number): string {
@@ -70,18 +71,22 @@ function PeriodCard({ title, current, prev, accent }: { title: string; current: 
 const DAY_NAMES = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
 
 export function AnalyticsSection() {
+  const params = useParams();
+  const tenantSlug = params.tenant as string;
+
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchData = useCallback(async (manual = false) => {
+    if (!tenantSlug) return;
     if (manual) setRefreshing(true);
     try {
-      const res = await fetch("/api/analytics");
+      const res = await fetch(`/api/analytics?tenantSlug=${encodeURIComponent(tenantSlug)}`);
       if (res.ok) setData(await res.json());
     } catch (err) { console.error(err); }
     finally { setLoading(false); setRefreshing(false); }
-  }, []);
+  }, [tenantSlug]);
 
   useEffect(() => {
     fetchData();

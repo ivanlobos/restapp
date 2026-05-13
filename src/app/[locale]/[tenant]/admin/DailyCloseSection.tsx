@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
 import { Lock, TrendingUp, Receipt, Calculator, Users, X, Printer } from "lucide-react";
 
 function formatCLP(value: number): string {
@@ -19,18 +20,22 @@ interface DailyData {
 }
 
 export function DailyCloseSection() {
+  const params = useParams();
+  const tenantSlug = params.tenant as string;
+
   const [data, setData] = useState<DailyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [closing, setClosing] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
   const fetchData = useCallback(async () => {
+    if (!tenantSlug) return;
     try {
-      const res = await fetch("/api/daily-close");
+      const res = await fetch(`/api/daily-close?tenantSlug=${encodeURIComponent(tenantSlug)}`);
       if (res.ok) setData(await res.json());
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  }, []);
+  }, [tenantSlug]);
 
   useEffect(() => { fetchData(); const i = setInterval(fetchData, 30000); return () => clearInterval(i); }, [fetchData]);
 
@@ -38,7 +43,11 @@ export function DailyCloseSection() {
     if (!confirm("¿Cerrar la jornada de hoy? Esta acción no se puede deshacer.")) return;
     setClosing(true);
     try {
-      const res = await fetch("/api/daily-close", { method: "POST" });
+      const res = await fetch("/api/daily-close", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tenantSlug }),
+      });
       if (res.ok) { await fetchData(); setShowModal(true); }
       else { const err = await res.json(); alert(err.error || "Error al cerrar"); }
     } catch (err) { alert("Error de conexión"); }
