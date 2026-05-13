@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
 import { QrCode, Plus, Trash2, X, Download, FileText, Users, Coffee, Bell, Clock, Map, List, RefreshCw } from "lucide-react";
 import jsPDF from "jspdf";
 
@@ -40,6 +41,9 @@ function formatCLP(value: number): string {
 }
 
 export function MesasClient({ initialTables }: { initialTables: Table[] }) {
+  const params = useParams();
+  const tenantSlug = params?.tenant as string;
+  const locale = params?.locale as string;
   const [tables, setTables] = useState<Table[]>(initialTables);
   const [showForm, setShowForm] = useState(false);
   const [number, setNumber] = useState("");
@@ -47,19 +51,24 @@ export function MesasClient({ initialTables }: { initialTables: Table[] }) {
   const [qrModal, setQrModal] = useState<Table | null>(null);
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("map");
-  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const refreshData = useCallback(async () => {
+    if (!tenantSlug) return;
     try {
       setRefreshing(true);
-      const res = await fetch("/api/tables/status");
+      const res = await fetch(`/api/tables/status?tenantSlug=${tenantSlug}`);
       if (res.ok) { const data = await res.json(); setTables(data); setLastUpdate(new Date()); }
     } catch (err) { console.error("Error refreshing:", err); }
     finally { setRefreshing(false); }
-  }, []);
+  }, [tenantSlug]);
 
-  useEffect(() => { const interval = setInterval(refreshData, 15000); return () => clearInterval(interval); }, [refreshData]);
+  useEffect(() => {
+    if (!tenantSlug) return;
+    const interval = setInterval(refreshData, 15000);
+    return () => clearInterval(interval);
+  }, [refreshData, tenantSlug]);
 
   const freeTables = tables.filter((t) => t.isActive && getTableStatus(t) === "free").length;
   const occupiedTables = tables.filter((t) => t.isActive && getTableStatus(t) === "occupied").length;
@@ -69,7 +78,7 @@ export function MesasClient({ initialTables }: { initialTables: Table[] }) {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const res = await fetch("/api/tables", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ number: parseInt(number), label: label || undefined }) });
+    const res = await fetch("/api/tables", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ number: parseInt(number), label: label || undefined, tenantSlug }) });
     if (res.ok) { const table = await res.json(); setTables((prev) => [...prev, table].sort((a, b) => a.number - b.number)); setNumber(""); setLabel(""); setShowForm(false); }
     setLoading(false);
   };
@@ -96,7 +105,7 @@ export function MesasClient({ initialTables }: { initialTables: Table[] }) {
       const ctx = canvas.getContext("2d")!; ctx.drawImage(img, 0, 0);
       pdf.addImage(canvas.toDataURL("image/png"), "PNG", qrX, 105, qrSize, qrSize);
       pdf.setFont("helvetica", "normal"); pdf.setFontSize(9); pdf.setTextColor(150, 150, 150);
-      pdf.text(window.location.origin + "/mesa/" + table.id, pageW / 2, 233, { align: "center" });
+      pdf.text(window.location.origin + "/" + locale + "/" + tenantSlug + "/mesa/" + table.id, pageW / 2, 233, { align: "center" });
       pdf.setFillColor(245, 158, 11); pdf.rect(0, pageH - 20, pageW, 20, "F");
       pdf.setTextColor(255, 255, 255); pdf.setFontSize(10); pdf.setFont("helvetica", "normal");
       pdf.text("Powered by RestaurantApp", pageW / 2, pageH - 8, { align: "center" });
@@ -106,12 +115,12 @@ export function MesasClient({ initialTables }: { initialTables: Table[] }) {
 
   const handleDelete = async (id: string) => {
     if (!confirm("¿Eliminar esta mesa?")) return;
-    const res = await fetch("/api/tables/" + id, { method: "DELETE" });
+    const res = await fetch("/api/tables/" + id + "?tenantSlug=" + tenantSlug, { method: "DELETE" });
     if (res.ok) setTables((prev) => prev.filter((t) => t.id !== id));
   };
 
   const handleToggle = async (table: Table) => {
-    const res = await fetch("/api/tables/" + table.id, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isActive: !table.isActive }) });
+    const res = await fetch("/api/tables/" + table.id, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isActive: !table.isActive, tenantSlug }) });
     if (res.ok) { const updated = await res.json(); setTables((prev) => prev.map((t) => (t.id === updated.id ? updated : t))); }
   };
 
@@ -120,7 +129,7 @@ export function MesasClient({ initialTables }: { initialTables: Table[] }) {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Mesas</h1>
-          <p className="text-gray-500 text-sm">{activeTables} mesas activas · Actualizado {lastUpdate.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}</p>
+          <p className="text-gray-500 text-sm">{activeTables} mesas activas · Actualizado {lastUpdate ? lastUpdate.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" }) : "--:--"}</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex bg-gray-100 rounded-lg p-0.5">
@@ -238,7 +247,7 @@ export function MesasClient({ initialTables }: { initialTables: Table[] }) {
             </div>
             <div className="flex flex-col items-center gap-4">
               <img src={"/api/qr/" + qrModal.id} alt={"QR Mesa " + qrModal.number} className="w-64 h-64 border border-gray-200 rounded-xl" />
-              <p className="text-xs text-gray-400 text-center break-all">{process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"}/mesa/{qrModal.id}</p>
+              <p className="text-xs text-gray-400 text-center break-all">{process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"}/{locale}/{tenantSlug}/mesa/{qrModal.id}</p>
               <a href={"/api/qr/" + qrModal.id} download={"mesa-" + qrModal.number + ".png"} className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors w-full justify-center"><Download size={16} /> Descargar PNG</a>
               <button onClick={() => handleDownloadPDF(qrModal)} className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors w-full justify-center"><FileText size={16} /> Descargar PDF</button>
             </div>

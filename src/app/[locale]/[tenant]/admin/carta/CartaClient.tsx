@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useParams } from "next/navigation";
 import { Plus, Pencil, Trash2, X, Eye, EyeOff, Tag } from "lucide-react";
 import { formatCLP } from "@/lib/utils";
 
@@ -24,6 +25,8 @@ interface Category {
 }
 
 export function CartaClient({ initialCategories }: { initialCategories: Category[] }) {
+  const params = useParams();
+  const tenantSlug = params?.tenant as string;
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [selectedCatId, setSelectedCatId] = useState<string | null>(initialCategories[0]?.id ?? null);
   const [showCatForm, setShowCatForm] = useState(false);
@@ -57,7 +60,7 @@ export function CartaClient({ initialCategories }: { initialCategories: Category
     const res = await fetch("/api/categories", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: catName, sortOrder: categories.length }),
+      body: JSON.stringify({ name: catName, sortOrder: categories.length, tenantSlug }),
     });
     if (res.ok) {
       const cat = await res.json();
@@ -71,7 +74,7 @@ export function CartaClient({ initialCategories }: { initialCategories: Category
 
   const handleCatDelete = async (id: string) => {
     if (!confirm("¿Eliminar categoría y todos sus productos?")) return;
-    const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/categories/${id}?tenantSlug=${tenantSlug}`, { method: "DELETE" });
     if (res.ok) {
       const newCats = categories.filter((c) => c.id !== id);
       setCategories(newCats);
@@ -83,7 +86,7 @@ export function CartaClient({ initialCategories }: { initialCategories: Category
     e.preventDefault();
     setLoading(true);
 
-    const data = { name: pName, description: pDesc, price: parseInt(pPrice), categoryId: pCat, imageUrl: pImage || null };
+    const data = { name: pName, description: pDesc, price: parseInt(pPrice), categoryId: pCat, imageUrl: pImage || null, tenantSlug };
     let res: Response;
 
     if (productModal?.mode === "create") {
@@ -128,7 +131,7 @@ export function CartaClient({ initialCategories }: { initialCategories: Category
     const res = await fetch(`/api/products/${product.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isAvailable: !product.isAvailable }),
+      body: JSON.stringify({ isAvailable: !product.isAvailable, tenantSlug }),
     });
     if (res.ok) {
       const updated = await res.json();
@@ -143,7 +146,7 @@ export function CartaClient({ initialCategories }: { initialCategories: Category
 
   const handleProductDelete = async (product: Product) => {
     if (!confirm(`¿Eliminar "${product.name}"?`)) return;
-    const res = await fetch(`/api/products/${product.id}`, { method: "DELETE" });
+    const res = await fetch(`/api/products/${product.id}?tenantSlug=${tenantSlug}`, { method: "DELETE" });
     if (res.ok) {
       setCategories((prev) =>
         prev.map((cat) => ({ ...cat, products: cat.products.filter((p) => p.id !== product.id) }))
@@ -350,6 +353,7 @@ export function CartaClient({ initialCategories }: { initialCategories: Category
         if (!file) return;
         const fd = new FormData();
         fd.append("file", file);
+        fd.append("tenantSlug", tenantSlug);
         setLoading(true);
         const res = await fetch("/api/upload", { method: "POST", body: fd });
         const data = await res.json();

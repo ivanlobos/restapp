@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useParams } from "next/navigation";
 import { Settings, Check } from "lucide-react";
 
 const DAYS = [
@@ -14,6 +15,8 @@ const DAYS = [
 ];
 
 export function SettingsClient({ initialWeekStartDay }: { initialWeekStartDay: number }) {
+  const params = useParams();
+  const tenantSlug = params?.tenant as string;
   const [weekStartDay, setWeekStartDay] = useState(initialWeekStartDay);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -25,7 +28,7 @@ export function SettingsClient({ initialWeekStartDay }: { initialWeekStartDay: n
       const res = await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ weekStartDay }),
+        body: JSON.stringify({ weekStartDay, tenantSlug }),
       });
       if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 3000); }
       else alert("Error al guardar");

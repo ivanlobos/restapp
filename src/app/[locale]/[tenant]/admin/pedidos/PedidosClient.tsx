@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { formatCLP } from "@/lib/utils";
 import { RefreshCw, CheckCircle2, Circle } from "lucide-react";
 
@@ -63,14 +64,18 @@ const nextStatusLabel: Record<string, string> = {
 };
 
 export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
+  const params = useParams();
+  const tenantSlug = params?.tenant as string;
+  const locale = params?.locale as string;
   const [orders, setOrders] = useState<Order[]>(initialOrders);
-  const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   // deliveredItems: { [orderId]: Set<itemId> }
   const [deliveredItems, setDeliveredItems] = useState<Record<string, Set<string>>>({});
 
   useEffect(() => {
+    if (!tenantSlug) return;
     const interval = setInterval(async () => {
-      const res = await fetch("/api/orders?status=PENDING,PROCESSING,PAID,PREPARING");
+      const res = await fetch(`/api/orders?status=PENDING,PROCESSING,PAID,PREPARING&tenantSlug=${tenantSlug}`);
       if (res.ok) {
         const data = await res.json();
         setOrders(data);
@@ -78,7 +83,7 @@ export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
       }
     }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [tenantSlug]);
 
   const toggleItem = (orderId: string, itemId: string) => {
     setDeliveredItems((prev) => {
@@ -102,7 +107,7 @@ export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
     const res = await fetch(`/api/orders/${orderId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, tenantSlug }),
     });
     if (res.ok) {
       const updated = await res.json();
@@ -125,12 +130,13 @@ export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Pedidos activos</h1>
           <p className="text-gray-400 text-xs mt-0.5">
-            Actualizado: {lastRefresh.toLocaleTimeString("es-CL")} · Auto-refresh cada 5s
+            Actualizado: {lastRefresh ? lastRefresh.toLocaleTimeString("es-CL") : "--:--:--"} · Auto-refresh cada 5s
           </p>
         </div>
         <button
           onClick={async () => {
-            const res = await fetch("/api/orders?status=PENDING,PROCESSING,PAID,PREPARING");
+            if (!tenantSlug) return;
+            const res = await fetch(`/api/orders?status=PENDING,PROCESSING,PAID,PREPARING&tenantSlug=${tenantSlug}`);
             if (res.ok) { setOrders(await res.json()); setLastRefresh(new Date()); }
           }}
           className="p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition-colors"
@@ -169,9 +175,9 @@ export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
                   <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${badgeColor[order.status] ?? ""}`}>
                     {statusLabel[order.status]}
                 </span>
-              <a href={`/admin/pedidos/${order.id}/print`} target="_blank" className="text-xs text-gray-400 hover:text-gray-600 underline mt-1">
+              <a href={`/${locale}/${tenantSlug}/admin/pedidos/${order.id}/print`} target="_blank" className="text-xs text-gray-400 hover:text-gray-600 underline mt-1">
             🖨️ Comanda
-          </a>  
+          </a>
               </div>
 
                 {/* Items */}

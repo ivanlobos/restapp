@@ -1,13 +1,17 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import { getTenantBySlug } from "@/lib/tenant";
 import { PrintButton } from "./PrintButton";
 
 export const dynamic = "force-dynamic";
 
-export default async function PrintPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function PrintPage({ params }: { params: Promise<{ id: string; tenant: string }> }) {
+  const { id, tenant: tenantSlug } = await params;
+  const tenant = await getTenantBySlug(tenantSlug);
+  if (!tenant) notFound();
+
   const order = await prisma.order.findUnique({
-    where: { id },
+    where: { id, tenantId: tenant.id },
     include: { table: true, items: { include: { product: true } } },
   });
 
