@@ -1,25 +1,28 @@
 import { Sidebar } from "@/components/admin/Sidebar";
 import { WaiterCalls } from "@/components/admin/WaiterCalls";
-import { getTenantByAdminKey } from "@/lib/tenant";
-import { notFound } from "next/navigation";
+import { getTenantBySlug } from "@/lib/tenant";
+import { getAdminSession } from "@/lib/admin-session";
+import { notFound, redirect } from "next/navigation";
 
 type AdminLayoutProps = {
   children: React.ReactNode;
-  params: Promise<{ tenant: string }>;
-  searchParams?: Promise<{ key?: string }>;
+  params: Promise<{ locale: string; tenant: string }>;
 };
 
 export default async function AdminLayout({
   children,
   params,
-  searchParams,
 }: AdminLayoutProps) {
-  const { tenant: tenantSlug } = await params;
-  const sp = (await searchParams) ?? {};
-  const adminKey = sp.key;
+  const { locale, tenant: tenantSlug } = await params;
 
-  const tenant = await getTenantByAdminKey(tenantSlug, adminKey);
+  // Leer sesión desde cookie httpOnly
+  const session = await getAdminSession(tenantSlug);
+  if (!session) {
+    redirect(`/${locale}/${tenantSlug}/admin-login`);
+  }
 
+  // Verificar que el tenant siga existiendo y activo
+  const tenant = await getTenantBySlug(tenantSlug);
   if (!tenant) {
     notFound();
   }
