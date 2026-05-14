@@ -84,7 +84,7 @@ export function MesasClient({ initialTables }: { initialTables: Table[] }) {
   };
 
   const handleDownloadPDF = async (table: Table) => {
-    const qrUrl = window.location.origin + "/api/qr/" + table.id;
+    const qrUrl = window.location.origin + "/api/qr/" + table.id + "?tenantSlug=" + tenantSlug;
     const img = new window.Image();
     img.crossOrigin = "anonymous";
     img.src = qrUrl;
@@ -246,9 +246,9 @@ export function MesasClient({ initialTables }: { initialTables: Table[] }) {
               <button onClick={() => setQrModal(null)} className="p-1 rounded-full hover:bg-gray-100"><X size={20} /></button>
             </div>
             <div className="flex flex-col items-center gap-4">
-              <img src={"/api/qr/" + qrModal.id} alt={"QR Mesa " + qrModal.number} className="w-64 h-64 border border-gray-200 rounded-xl" />
-              <p className="text-xs text-gray-400 text-center break-all">{process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"}/{locale}/{tenantSlug}/mesa/{qrModal.id}</p>
-              <a href={"/api/qr/" + qrModal.id} download={"mesa-" + qrModal.number + ".png"} className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors w-full justify-center"><Download size={16} /> Descargar PNG</a>
+              <img src={"/api/qr/" + qrModal.id + "?tenantSlug=" + tenantSlug} alt={"QR Mesa " + qrModal.number} className="w-64 h-64 border border-gray-200 rounded-xl" />
+              <p className="text-xs text-gray-400 text-center break-all">{typeof window !== "undefined" ? window.location.origin : ""}/{locale}/{tenantSlug}/mesa/{qrModal.id}</p>
+              <a href={"/api/qr/" + qrModal.id + "?tenantSlug=" + tenantSlug} download={"mesa-" + qrModal.number + ".png"} className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors w-full justify-center"><Download size={16} /> Descargar PNG</a>
               <button onClick={() => handleDownloadPDF(qrModal)} className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors w-full justify-center"><FileText size={16} /> Descargar PDF</button>
             </div>
           </div>
