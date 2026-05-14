@@ -167,7 +167,7 @@ export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <p className="font-bold text-gray-900">{order.customerName}</p>
-                    <p className="text-gray-500 text-xs">
+                    <p className="text-gray-500 text-xs" suppressHydrationWarning>
                       Mesa {order.table.number}{order.table.label ? ` · ${order.table.label}` : ""} ·{" "}
                       {new Date(order.createdAt).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}
                     </p>

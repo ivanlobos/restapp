@@ -80,7 +80,7 @@ export function HistorialClient({ initialOrders }: { initialOrders: Order[] }) {
                   <span className="text-lg">🍽</span>
                   <div>
                     <p className="font-semibold text-gray-900 text-sm">{order.customerName}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500" suppressHydrationWarning>
                       Mesa {order.table.number}{order.table.label ? ` · ${order.table.label}` : ""} ·{" "}
                       {new Date(order.createdAt).toLocaleString("es-CL", {
                         day: "2-digit", month: "2-digit", year: "numeric",
