@@ -42,7 +42,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const { tenantSlug, tableId, customerName, items, includeTip, email } = body;
+  const { tenantSlug, tableId, customerName, items, includeTip, tipPercent, email } = body;
 
   if (!tenantSlug) {
     return NextResponse.json({ error: "tenantSlug requerido" }, { status: 400 });
@@ -88,7 +88,7 @@ export async function POST(req: Request) {
     };
   });
 
-  const tipAmount = includeTip ? calcTip(subtotal) : 0;
+  const tipAmount = includeTip ? calcTip(subtotal, tipPercent ?? 10) : 0;
   const total = subtotal + tipAmount;
 
   const order = await prisma.$transaction(async (tx) => {

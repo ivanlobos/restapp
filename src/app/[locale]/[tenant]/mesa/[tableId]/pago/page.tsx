@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
@@ -35,6 +35,7 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
     getTotal,
   } = useCartStore();
 
+  const initRan = useRef(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,6 +46,8 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
   const total = getTotal();
 
   useEffect(() => {
+    if (initRan.current) return;
+    initRan.current = true;
     if (!customerName || storeTableId !== tableId || storeTenantSlug !== tenantSlug || items.length === 0) {
       router.replace(`/${locale}/${tenantSlug}/mesa/${tableId}`);
       return;
@@ -62,6 +65,7 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
             customerName,
             email: email ?? undefined,
             includeTip,
+            tipPercent,
             items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
           }),
         });
