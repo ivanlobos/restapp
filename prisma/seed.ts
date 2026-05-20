@@ -1,84 +1,155 @@
-import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from '@prisma/client'
+import crypto from 'crypto'
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
-const prisma = new PrismaClient({ adapter } as ConstructorParameters<typeof PrismaClient>[0]);
+const prisma = new PrismaClient()
+
+function generateAdminKey(): string {
+  return crypto.randomBytes(32).toString('hex')
+}
 
 async function main() {
-  console.log("Seeding database...");
+  console.log('🌱 Seeding database...\n')
 
-  // Create tables
-  for (const t of [
-    { number: 1, label: "Salón" },
-    { number: 2, label: "Salón" },
-    { number: 3, label: "Terraza" },
-    { number: 4, label: "Terraza" },
-    { number: 5, label: "Bar" },
-  ]) {
-    const existing = await prisma.table.findUnique({ where: { number: t.number } });
-    if (!existing) await prisma.table.create({ data: t });
-  }
+  // ============================================================
+  // TENANT 1: BAR IMPERIAL (cliente real, primera visita 24/05)
+  // ============================================================
+  const imperialAdminKey = generateAdminKey()
+  
+  const imperial = await prisma.tenant.create({
+    data: {
+      slug: 'imperial',
+      name: 'Bar Imperial',
+      address: 'Maipú, Santiago',
+      phone: null,
+      mercadoPagoToken: null, // se carga después desde admin
+      adminKey: imperialAdminKey,
+      isActive: true,
+      settings: {
+        create: {
+          weekStartDay: 1,
+        },
+      },
+    },
+  })
 
-  const entradas = await prisma.category.upsert({
-    where: { id: "cat-entradas" },
-    update: {},
-    create: { id: "cat-entradas", name: "Entradas", sortOrder: 1 },
-  });
+  // 12 mesas placeholder, sin label (se ajustan desde admin)
+  await prisma.table.createMany({
+    data: Array.from({ length: 12 }, (_, i) => ({
+      tenantId: imperial.id,
+      number: i + 1,
+      isActive: true,
+    })),
+  })
 
-  const principales = await prisma.category.upsert({
-    where: { id: "cat-principales" },
-    update: {},
-    create: { id: "cat-principales", name: "Platos principales", sortOrder: 2 },
-  });
+  console.log('✅ Tenant creado: Bar Imperial')
+  console.log(`   slug: imperial`)
+  console.log(`   adminKey: ${imperialAdminKey}`)
+  console.log(`   admin URL: /imperial/admin?key=${imperialAdminKey}`)
+  console.log(`   12 mesas creadas (sin label)\n`)
 
-  const bebidas = await prisma.category.upsert({
-    where: { id: "cat-bebidas" },
-    update: {},
-    create: { id: "cat-bebidas", name: "Bebidas", sortOrder: 3 },
-  });
+  // ============================================================
+  // TENANT 2: DEMO (para desarrollo y testing)
+  // ============================================================
+  const demoAdminKey = generateAdminKey()
 
-  const postres = await prisma.category.upsert({
-    where: { id: "cat-postres" },
-    update: {},
-    create: { id: "cat-postres", name: "Postres", sortOrder: 4 },
-  });
+  const demo = await prisma.tenant.create({
+    data: {
+      slug: 'demo',
+      name: 'Demo Restaurant',
+      address: 'Restaurante de prueba',
+      phone: null,
+      mercadoPagoToken: process.env.MP_ACCESS_TOKEN || null,
+      adminKey: demoAdminKey,
+      isActive: true,
+      settings: {
+        create: {
+          weekStartDay: 1,
+        },
+      },
+    },
+  })
 
-  const products = [
-    { name: "Tabla de quesos", description: "Selección de quesos locales con mermelada y galletas", price: 8900, categoryId: entradas.id, sortOrder: 1 },
-    { name: "Nachos con guacamole", description: "Nachos artesanales con guacamole fresco y salsa", price: 7500, categoryId: entradas.id, sortOrder: 2 },
-    { name: "Alitas BBQ", description: "6 alitas de pollo con salsa BBQ casera", price: 9500, categoryId: entradas.id, sortOrder: 3 },
-    { name: "Burger clásica", description: "Carne de vacuno, lechuga, tomate, cebolla y papas fritas", price: 12500, categoryId: principales.id, sortOrder: 1 },
-    { name: "Burger doble cheese", description: "Doble carne, doble queso cheddar y papas fritas", price: 15900, categoryId: principales.id, sortOrder: 2 },
-    { name: "Pasta al pesto", description: "Linguini con pesto de albahaca fresca y parmesano", price: 11000, categoryId: principales.id, sortOrder: 3 },
-    { name: "Salmón a la plancha", description: "Filete de salmón con ensalada y papas al vapor", price: 18500, categoryId: principales.id, sortOrder: 4 },
-    { name: "Cerveza artesanal", description: "500ml - lager, rubia o roja", price: 4500, categoryId: bebidas.id, sortOrder: 1 },
-    { name: "Pisco Sour", description: "Preparado con pisco 40°, limón y clara de huevo", price: 5500, categoryId: bebidas.id, sortOrder: 2 },
-    { name: "Agua mineral", description: "500ml con o sin gas", price: 1500, categoryId: bebidas.id, sortOrder: 3 },
-    { name: "Jugo natural", description: "Naranja, piña o mango", price: 3500, categoryId: bebidas.id, sortOrder: 4 },
-    { name: "Vino de la casa", description: "Copa 150ml - tinto o blanco", price: 4000, categoryId: bebidas.id, sortOrder: 5 },
-    { name: "Tiramisú", description: "Clásico tiramisú italiano con cacao en polvo", price: 5500, categoryId: postres.id, sortOrder: 1 },
-    { name: "Brownie con helado", description: "Brownie tibio de chocolate con helado de vainilla", price: 4900, categoryId: postres.id, sortOrder: 2 },
-  ];
+  // 5 mesas para demo
+  await prisma.table.createMany({
+    data: Array.from({ length: 5 }, (_, i) => ({
+      tenantId: demo.id,
+      number: i + 1,
+      label: `Mesa ${i + 1}`,
+      isActive: true,
+    })),
+  })
 
-  for (const p of products) {
-    const existing = await prisma.product.findFirst({ where: { name: p.name, categoryId: p.categoryId } });
-    if (!existing) await prisma.product.create({ data: p });
-  }
-// Settings singleton
-  await prisma.settings.upsert({
-    where: { id: "singleton" },
-    update: {},
-    create: { id: "singleton", weekStartDay: 1 },
-  });
-  console.log("✅ Database seeded successfully!");
+  // Categorías de ejemplo
+  const cervezas = await prisma.category.create({
+    data: {
+      tenantId: demo.id,
+      name: 'Cervezas',
+      sortOrder: 1,
+    },
+  })
+
+  const comida = await prisma.category.create({
+    data: {
+      tenantId: demo.id,
+      name: 'Comida',
+      sortOrder: 2,
+    },
+  })
+
+  // Productos de ejemplo
+  await prisma.product.createMany({
+    data: [
+      {
+        tenantId: demo.id,
+        categoryId: cervezas.id,
+        name: 'IPA Artesanal',
+        description: 'Lúpulo intenso, 6.5% ABV',
+        price: 4500,
+        sortOrder: 1,
+      },
+      {
+        tenantId: demo.id,
+        categoryId: cervezas.id,
+        name: 'Stout',
+        description: 'Cerveza negra, notas a café',
+        price: 4500,
+        sortOrder: 2,
+      },
+      {
+        tenantId: demo.id,
+        categoryId: comida.id,
+        name: 'Hamburguesa Clásica',
+        description: 'Carne 200g, queso, lechuga, tomate',
+        price: 8900,
+        sortOrder: 1,
+      },
+      {
+        tenantId: demo.id,
+        categoryId: comida.id,
+        name: 'Papas Fritas',
+        description: 'Porción grande',
+        price: 3500,
+        sortOrder: 2,
+      },
+    ],
+  })
+
+  console.log('✅ Tenant creado: Demo Restaurant')
+  console.log(`   slug: demo`)
+  console.log(`   adminKey: ${demoAdminKey}`)
+  console.log(`   admin URL: /demo/admin?key=${demoAdminKey}`)
+  console.log(`   5 mesas + 2 categorías + 4 productos\n`)
+
+  console.log('🎉 Seed completado.\n')
+  console.log('⚠️  GUARDÁ LAS ADMIN KEYS EN UN LUGAR SEGURO')
+  console.log('   (también podés verlas en Prisma Studio en cualquier momento)\n')
 }
 
 main()
   .catch((e) => {
-    console.error(e);
-    process.exit(1);
+    console.error('❌ Seed falló:', e)
+    process.exit(1)
   })
   .finally(async () => {
-    await prisma.$disconnect();
-  });
+    await prisma.$disconnect()
+  })

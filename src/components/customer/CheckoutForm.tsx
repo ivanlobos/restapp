@@ -9,9 +9,11 @@ interface CheckoutFormProps {
   total: number;
   tableId: string;
   orderId: string;
+  tenantSlug: string;
+  locale: string;
 }
 
-export function CheckoutForm({ total, tableId, orderId }: CheckoutFormProps) {
+export function CheckoutForm({ total, tableId, orderId, tenantSlug, locale }: CheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -27,7 +29,7 @@ export function CheckoutForm({ total, tableId, orderId }: CheckoutFormProps) {
     const { error: stripeError } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: `${window.location.origin}/mesa/${tableId}/gracias?order=${orderId}`,
+        return_url: `${window.location.origin}/${locale}/${tenantSlug}/mesa/${tableId}/gracias?order=${orderId}`,
       },
     });
 
@@ -55,7 +57,7 @@ export function CheckoutForm({ total, tableId, orderId }: CheckoutFormProps) {
       <button
         type="submit"
         disabled={!stripe || loading}
-        className="w-full bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2 text-lg"
+        className="w-full bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2 text-lg"
       >
         {loading ? (
           <>

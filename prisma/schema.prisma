@@ -8,87 +8,145 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model Tenant {
+  id                String   @id @default(cuid())
+  slug              String   @unique
+  name              String
+  address           String?
+  phone             String?
+  mercadoPagoToken  String?
+  adminKey          String   @unique
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  tables       Table[]
+  categories   Category[]
+  products     Product[]
+  orders       Order[]
+  waiterCalls  WaiterCall[]
+  dailyCloses  DailyClose[]
+  settings     Settings?
+}
+
 model Table {
-  id        String   @id @default(cuid())
-  number    Int      @unique
-  label     String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  orders    Order[]
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  number      Int
+  label       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  orders      Order[]
   waiterCalls WaiterCall[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
 }
 
 model Category {
   id        String    @id @default(cuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   name      String
   sortOrder Int       @default(0)
   isActive  Boolean   @default(true)
   products  Product[]
+
+  @@index([tenantId])
 }
 
 model Product {
-  id          String      @id @default(cuid())
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   name        String
   description String?
   price       Int
   imageUrl    String?
-  isAvailable Boolean     @default(true)
-  sortOrder   Int         @default(0)
+  isAvailable Boolean  @default(true)
+  sortOrder   Int      @default(0)
   categoryId  String
-  category    Category    @relation(fields: [categoryId], references: [id])
+  category    Category @relation(fields: [categoryId], references: [id])
   orderItems  OrderItem[]
+
+  @@index([tenantId])
+  @@index([categoryId])
 }
 
 model Order {
-  id               String      @id @default(cuid())
-  tableId          String
-  table            Table       @relation(fields: [tableId], references: [id])
-  customerName     String
-  status           String      @default("PENDING")
-  subtotal         Int
-  tipAmount        Int
-  total            Int
-  includeTip       Boolean     @default(true)
-  stripePaymentId  String?
-  paidAt           DateTime?
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  items            OrderItem[]
-  email            String?
+  id              String      @id @default(cuid())
+  tenantId        String
+  tenant          Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tableId         String
+  table           Table       @relation(fields: [tableId], references: [id])
+  customerName    String
+  status          String      @default("PENDING")
+  subtotal        Int
+  tipAmount       Int
+  total           Int
+  includeTip      Boolean     @default(true)
+  stripePaymentId String?
+  paidAt          DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  items           OrderItem[]
+  email           String?
+
+  @@index([tenantId])
+  @@index([tableId])
+  @@index([status])
 }
 
 model OrderItem {
-  id         String  @id @default(cuid())
-  orderId    String
-  order      Order   @relation(fields: [orderId], references: [id])
-  productId  String
-  product    Product @relation(fields: [productId], references: [id])
-  quantity   Int
-  unitPrice  Int
-  subtotal   Int
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Int
+  subtotal  Int
+
+  @@index([orderId])
 }
 
 model WaiterCall {
   id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   tableId   String
   table     Table    @relation(fields: [tableId], references: [id])
   status    String   @default("PENDING")
   createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([tableId])
+  @@index([status])
 }
+
 model DailyClose {
-  id            String   @id @default(cuid())
-  date          DateTime @unique
-  totalSales    Int
-  totalNet      Int
-  totalIVA      Int
-  totalTips     Int
-  orderCount    Int
-  avgTicket     Int
-  closedAt      DateTime @default(now())
-  closedBy      String   @default("Admin")
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  date        DateTime
+  totalSales  Int
+  totalNet    Int
+  totalIVA    Int
+  totalTips   Int
+  orderCount  Int
+  avgTicket   Int
+  closedAt    DateTime @default(now())
+  closedBy    String   @default("Admin")
+
+  @@unique([tenantId, date])
+  @@index([tenantId])
 }
+
 model Settings {
-  id            String   @id @default("singleton")
-  weekStartDay  Int      @default(1)
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(cuid())
+  tenantId     String   @unique
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  weekStartDay Int      @default(1)
+  updatedAt    DateTime @updatedAt
 }

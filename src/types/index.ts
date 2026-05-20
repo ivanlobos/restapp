@@ -14,13 +14,14 @@ export interface CartItem {
 }
 
 export interface CartStore {
+  tenantSlug: string | null;
   tableId: string | null;
   customerName: string | null;
   email: string | null;
   items: CartItem[];
   includeTip: boolean;
   tipPercent: number;
-  setSession: (tableId: string, name: string, email?: string) => void;
+  setSession: (tenantSlug: string, tableId: string, name: string, email?: string) => void;
   addItem: (product: { id: string; name: string; price: number }) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;

@@ -8,10 +8,11 @@ interface Props {
   total: number;
   tableId: string;
   orderId: string;
+  tenantSlug: string;
   items: { productId: string; name: string; quantity: number; price: number }[];
 }
 
-export function MercadoPagoButton({ total, tableId, orderId, items }: Props) {
+export function MercadoPagoButton({ total, tableId, orderId, tenantSlug, items }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,6 +25,8 @@ export function MercadoPagoButton({ total, tableId, orderId, items }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tableId,
+          orderId,
+          tenantSlug,
           items: items.map((i) => ({
             id: i.productId,
             name: i.name,
