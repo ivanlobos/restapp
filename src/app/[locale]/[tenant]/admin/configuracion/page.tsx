@@ -25,10 +25,23 @@ export default async function ConfiguracionPage({ params }: ConfiguracionPagePro
     hasPublicKey: !!tenant.mpPublicKey,
   };
 
+  // Datos del restaurante (no sensibles)
+  const tenantInfo = {
+    name: tenant.name,
+    address: tenant.address ?? "",
+    phone: tenant.phone ?? "",
+    email: tenant.email ?? "",
+    logoUrl: tenant.logoUrl ?? "",
+    legalName: tenant.legalName ?? "",
+    taxId: tenant.taxId ?? "",
+    currency: tenant.currency,
+  };
+
   return (
     <SettingsClient
       initialWeekStartDay={settings.weekStartDay ?? 1}
       mpStatus={mpStatus}
+      tenantInfo={tenantInfo}
     />
   );
 }
