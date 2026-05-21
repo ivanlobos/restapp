@@ -15,6 +15,9 @@ model Tenant {
   address           String?
   phone             String?
   mercadoPagoToken  String?
+  mpAccessToken     String?
+  mpPublicKey       String?
+  mpEnabled         Boolean  @default(false)
   adminKey          String   @unique
   isActive          Boolean  @default(true)
   createdAt         DateTime @default(now())
