@@ -18,5 +18,17 @@ export default async function ConfiguracionPage({ params }: ConfiguracionPagePro
     create: { tenantId: tenant.id, weekStartDay: 1 },
   });
 
-  return <SettingsClient initialWeekStartDay={settings.weekStartDay ?? 1} />;
+  // Estado MP (sin tokens en claro)
+  const mpStatus = {
+    enabled: tenant.mpEnabled,
+    hasAccessToken: !!tenant.mpAccessToken,
+    hasPublicKey: !!tenant.mpPublicKey,
+  };
+
+  return (
+    <SettingsClient
+      initialWeekStartDay={settings.weekStartDay ?? 1}
+      mpStatus={mpStatus}
+    />
+  );
 }
