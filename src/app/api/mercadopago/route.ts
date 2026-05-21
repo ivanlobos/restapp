@@ -1,6 +1,7 @@
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import { NextRequest, NextResponse } from "next/server";
 import { getTenantBySlug } from "@/lib/tenant";
+import { decrypt } from "@/lib/crypto";
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,8 +16,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Tenant no encontrado" }, { status: 404 });
     }
 
-    // Bloque D: token por tenant, con fallback a env var
-    const accessToken = tenant.mercadoPagoToken ?? process.env.MP_ACCESS_TOKEN;
+    // Multi-tenant: cada tenant tiene sus propias credenciales MP
+    // 1. Si mpEnabled + mpAccessToken (encriptado AES-256-GCM) → desencriptar y usar
+    // 2. Fallback: mercadoPagoToken viejo (sin encriptar, legacy) para retrocompat
+    // 3. Sin fallback a env var: si no hay token configurado, error
+    let accessToken: string | null = null;
+    if (tenant.mpEnabled && tenant.mpAccessToken) {
+      try {
+        accessToken = decrypt(tenant.mpAccessToken);
+      } catch (err) {
+        console.error("MP: error desencriptando token de tenant", tenant.slug, err);
+        return NextResponse.json(
+          { error: "Credenciales MP corruptas. Contacta al administrador." },
+          { status: 500 }
+        );
+      }
+    } else if (tenant.mercadoPagoToken) {
+      accessToken = tenant.mercadoPagoToken;
+    }
+
     if (!accessToken) {
       return NextResponse.json(
         { error: "MercadoPago no configurado para este restaurante" },
