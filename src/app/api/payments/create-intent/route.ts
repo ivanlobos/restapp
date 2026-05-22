@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { stripe } from "@/lib/stripe";
+import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { getTenantBySlug } from "@/lib/tenant";
 
 export async function POST(req: Request) {
+  if (!isStripeConfigured()) {
+    return NextResponse.json(
+      { error: "Pagos con tarjeta no disponibles en este momento" },
+      { status: 503 }
+    );
+  }
+
   const body = await req.json();
   const { orderId, tenantSlug } = body;
 
@@ -38,7 +45,7 @@ export async function POST(req: Request) {
   }
 
   // CLP is a zero-decimal currency - amount is in whole pesos, no * 100
-  const paymentIntent = await stripe.paymentIntents.create({
+  const paymentIntent = await getStripe().paymentIntents.create({
     amount: order.total,
     currency: "clp",
     metadata: {
