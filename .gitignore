@@ -49,3 +49,9 @@ contraseña.txt
 
 .vercel
 .env*.local
+
+# database backups (datos reales de prod, NUNCA subir)
+/backups/*
+!/backups/RESTORE.md
+*.dump
+*.sql.gz
