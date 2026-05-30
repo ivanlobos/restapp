@@ -2,19 +2,11 @@
 
 import { use, useEffect, useRef, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements } from "@stripe/react-stripe-js";
 import { useCartStore } from "@/store/cartStore";
-import { CheckoutForm } from "@/components/customer/CheckoutForm";
-import { MockCheckoutForm } from "@/components/customer/MockCheckoutForm";
 import { formatCLP } from "@/lib/utils";
 import { ArrowLeft, Loader2, Receipt } from "lucide-react";
 import Link from "next/link";
 import { MercadoPagoButton } from "@/components/customer/MercadoPagoButton";
-
-const STRIPE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
-const isMockMode = !STRIPE_KEY || STRIPE_KEY.includes("YOUR_KEY");
-const stripePromise = isMockMode ? null : loadStripe(STRIPE_KEY);
 
 export default function PagoPage({ params }: { params: Promise<{ tableId: string }> }) {
   const { tableId } = use(params);
@@ -37,7 +29,6 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
 
   const initRan = useRef(false);
   const [orderId, setOrderId] = useState<string | null>(null);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,7 +46,6 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
 
     const init = async () => {
       try {
-        // Step 1: create order in DB
         const orderRes = await fetch("/api/orders", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -77,23 +67,6 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
 
         const order = await orderRes.json();
         setOrderId(order.id);
-
-        // Step 2: if Stripe is configured, create a PaymentIntent
-        if (!isMockMode) {
-          const intentRes = await fetch("/api/payments/create-intent", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ tenantSlug, orderId: order.id }),
-          });
-
-          if (!intentRes.ok) {
-            const data = await intentRes.json();
-            throw new Error(data.error ?? "Error al iniciar pago");
-          }
-
-          const { clientSecret } = await intentRes.json();
-          setClientSecret(clientSecret);
-        }
       } catch (err) {
         setError((err as Error).message);
       } finally {
@@ -179,61 +152,23 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
           </div>
         </div>
 
-        {/* Payment form */}
+        {/* Payment */}
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
           <h2 className="font-semibold text-gray-800 mb-4">Datos de pago</h2>
 
-          {orderId && isMockMode && (
-            <MockCheckoutForm
+          {orderId && (
+            <MercadoPagoButton
               total={total}
               tableId={tableId}
               orderId={orderId}
               tenantSlug={tenantSlug}
-              locale={locale}
+              items={items.map((i) => ({
+                productId: i.productId,
+                name: i.name,
+                quantity: i.quantity,
+                price: i.price,
+              }))}
             />
-          )}
-
-          {orderId && !isMockMode && clientSecret && stripePromise && (
-            <Elements
-              stripe={stripePromise}
-              options={{
-                clientSecret,
-                appearance: {
-                  theme: "stripe",
-                  variables: { colorPrimary: "#f59e0b", borderRadius: "12px" },
-                },
-              }}
-            >
-              <CheckoutForm
-                total={total}
-                tableId={tableId}
-                orderId={orderId}
-                tenantSlug={tenantSlug}
-                locale={locale}
-              />
-            </Elements>
-          )}
-
-          {orderId && (
-            <div className="mt-4">
-              <div className="flex items-center gap-2 my-3">
-                <div className="flex-1 border-t border-gray-200" />
-                <span className="text-sm text-gray-400">o paga con</span>
-                <div className="flex-1 border-t border-gray-200" />
-              </div>
-              <MercadoPagoButton
-                total={total}
-                tableId={tableId}
-                orderId={orderId}
-                tenantSlug={tenantSlug}
-                items={items.map((i) => ({
-                  productId: i.productId,
-                  name: i.name,
-                  quantity: i.quantity,
-                  price: i.price,
-                }))}
-              />
-            </div>
           )}
         </div>
       </div>
