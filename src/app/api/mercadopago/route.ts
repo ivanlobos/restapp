@@ -2,13 +2,17 @@ import { MercadoPagoConfig, Preference } from "mercadopago";
 import { NextRequest, NextResponse } from "next/server";
 import { getTenantBySlug } from "@/lib/tenant";
 import { decrypt } from "@/lib/crypto";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
   try {
-    const { items, tableId, orderId, tenantSlug } = await req.json();
+    const { orderId, tenantSlug } = await req.json();
 
-    if (!tenantSlug) {
+    if (!tenantSlug || typeof tenantSlug !== "string") {
       return NextResponse.json({ error: "tenantSlug requerido" }, { status: 400 });
+    }
+    if (!orderId || typeof orderId !== "string") {
+      return NextResponse.json({ error: "orderId requerido" }, { status: 400 });
     }
 
     const tenant = await getTenantBySlug(tenantSlug);
@@ -16,10 +20,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Tenant no encontrado" }, { status: 404 });
     }
 
+    // Cargar pedido REAL desde BD (no confiar en precios del cliente)
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: { include: { product: true } },
+        table: true,
+      },
+    });
+
+    if (!order) {
+      return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
+    }
+
+    // Defensa en profundidad: el pedido debe pertenecer al tenant del slug
+    if (order.tenantId !== tenant.id) {
+      return NextResponse.json({ error: "Pedido no pertenece a este tenant" }, { status: 403 });
+    }
+
+    if (order.items.length === 0) {
+      return NextResponse.json({ error: "Pedido sin items" }, { status: 400 });
+    }
+
     // Multi-tenant: cada tenant tiene sus propias credenciales MP
-    // 1. Si mpEnabled + mpAccessToken (encriptado AES-256-GCM) → desencriptar y usar
-    // 2. Fallback: mercadoPagoToken viejo (sin encriptar, legacy) para retrocompat
-    // 3. Sin fallback a env var: si no hay token configurado, error
     let accessToken: string | null = null;
     if (tenant.mpEnabled && tenant.mpAccessToken) {
       try {
@@ -46,31 +69,46 @@ export async function POST(req: NextRequest) {
     const preference = new Preference(client);
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "";
-    // Asumimos locale "es" por defecto para back_urls
-    const successUrl = `${baseUrl}/es/${tenantSlug}/mesa/${tableId}/gracias?order=${orderId}`;
+    const tableId = order.tableId;
+    const successUrl = `${baseUrl}/es/${tenantSlug}/mesa/${tableId}/gracias?order=${order.id}`;
     const failureUrl = `${baseUrl}/es/${tenantSlug}/mesa/${tableId}/pago`;
     const pendingUrl = `${baseUrl}/es/${tenantSlug}/mesa/${tableId}/pago`;
 
+    // Items construidos desde BD: precios CONGELADOS al momento de crear el pedido
+    // El cliente NO puede manipular estos valores
+    const mpItems = order.items.map((item) => ({
+      id: item.productId,
+      title: item.product.name,
+      quantity: item.quantity,
+      unit_price: item.unitPrice,
+      currency_id: "CLP",
+    }));
+
+    // Incluir propina como item separado si aplica
+    if (order.includeTip && order.tipAmount > 0) {
+      mpItems.push({
+        id: "tip",
+        title: "Propina",
+        quantity: 1,
+        unit_price: order.tipAmount,
+        currency_id: "CLP",
+      });
+    }
+
     const result = await preference.create({
       body: {
-        items: items.map((item: { id: string; name: string; quantity: number; price: number }) => ({
-          id: item.id,
-          title: item.name,
-          quantity: item.quantity,
-          unit_price: item.price,
-          currency_id: "CLP",
-        })),
+        items: mpItems,
         back_urls: {
           success: successUrl,
           failure: failureUrl,
           pending: pendingUrl,
         },
         auto_return: "approved",
-        external_reference: orderId,
+        external_reference: order.id,
         metadata: {
           tenantId: tenant.id,
           tenantSlug: tenantSlug,
-          orderId: orderId,
+          orderId: order.id,
         },
       },
     });

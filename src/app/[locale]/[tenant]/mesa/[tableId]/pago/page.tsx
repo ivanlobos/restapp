@@ -159,15 +159,8 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
           {orderId && (
             <MercadoPagoButton
               total={total}
-              tableId={tableId}
               orderId={orderId}
               tenantSlug={tenantSlug}
-              items={items.map((i) => ({
-                productId: i.productId,
-                name: i.name,
-                quantity: i.quantity,
-                price: i.price,
-              }))}
             />
           )}
         </div>
