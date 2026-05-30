@@ -22,6 +22,7 @@ model Tenant {
   mercadoPagoToken  String?
   mpAccessToken     String?
   mpPublicKey       String?
+  mpWebhookSecret   String?
   mpEnabled         Boolean  @default(false)
   adminKey          String   @unique
   isActive          Boolean  @default(true)
