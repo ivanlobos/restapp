@@ -23,6 +23,7 @@ export default async function ConfiguracionPage({ params }: ConfiguracionPagePro
     enabled: tenant.mpEnabled,
     hasAccessToken: !!tenant.mpAccessToken,
     hasPublicKey: !!tenant.mpPublicKey,
+    hasWebhookSecret: !!tenant.mpWebhookSecret,
   };
 
   // Datos del restaurante (no sensibles)

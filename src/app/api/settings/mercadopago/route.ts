@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: session.tenantId },
-    select: { mpEnabled: true, mpAccessToken: true, mpPublicKey: true },
+    select: { mpEnabled: true, mpAccessToken: true, mpPublicKey: true, mpWebhookSecret: true },
   });
   if (!tenant) {
     return NextResponse.json({ error: "Tenant no encontrado" }, { status: 404 });
@@ -62,26 +62,39 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  let webhookSecretMask: string | null = null;
+  if (tenant.mpWebhookSecret) {
+    try {
+      const plain = decrypt(tenant.mpWebhookSecret);
+      webhookSecretMask = mask(plain);
+    } catch {
+      webhookSecretMask = "***corruptas***";
+    }
+  }
+
   return NextResponse.json({
     mpEnabled: tenant.mpEnabled,
     hasAccessToken: !!tenant.mpAccessToken,
     hasPublicKey: !!tenant.mpPublicKey,
+    hasWebhookSecret: !!tenant.mpWebhookSecret,
     accessTokenMask,
     publicKeyMask: mask(tenant.mpPublicKey),
+    webhookSecretMask,
   });
 }
 
 /**
  * POST /api/settings/mercadopago
- * body: { tenantSlug, accessToken?, publicKey?, enabled? }
+ * body: { tenantSlug, accessToken?, publicKey?, webhookSecret?, enabled? }
  * - Si accessToken viene: lo valida contra MP API y lo encripta
  * - Si publicKey viene: lo guarda en claro (es público por diseño)
+ * - Si webhookSecret viene: lo encripta (no se valida contra MP, es clave de firma)
  * - Si enabled viene: lo actualiza
  * Campos no presentes en el body no se tocan.
  */
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { tenantSlug, accessToken, publicKey, enabled } = body;
+  const { tenantSlug, accessToken, publicKey, webhookSecret, enabled } = body;
 
   if (!tenantSlug) {
     return NextResponse.json({ error: "tenantSlug requerido" }, { status: 400 });
@@ -95,6 +108,7 @@ export async function POST(req: NextRequest) {
   const update: {
     mpAccessToken?: string;
     mpPublicKey?: string;
+    mpWebhookSecret?: string;
     mpEnabled?: boolean;
   } = {};
 
@@ -120,6 +134,18 @@ export async function POST(req: NextRequest) {
 
   if (typeof publicKey === "string" && publicKey.trim().length > 0) {
     update.mpPublicKey = publicKey.trim();
+  }
+
+  if (typeof webhookSecret === "string" && webhookSecret.trim().length > 0) {
+    try {
+      update.mpWebhookSecret = encrypt(webhookSecret.trim());
+    } catch (err) {
+      console.error("encrypt webhookSecret error:", err);
+      return NextResponse.json(
+        { error: "Error encriptando el webhook secret" },
+        { status: 500 }
+      );
+    }
   }
 
   if (typeof enabled === "boolean") {
@@ -161,6 +187,7 @@ export async function DELETE(req: NextRequest) {
     data: {
       mpAccessToken: null,
       mpPublicKey: null,
+      mpWebhookSecret: null,
       mpEnabled: false,
     },
   });

@@ -18,6 +18,7 @@ type MpStatus = {
   enabled: boolean;
   hasAccessToken: boolean;
   hasPublicKey: boolean;
+  hasWebhookSecret: boolean;
 };
 
 type TenantInfo = {
@@ -67,6 +68,7 @@ export function SettingsClient({ initialWeekStartDay, mpStatus, tenantInfo }: Pr
   const [mp, setMp] = useState<MpStatus>(mpStatus);
   const [mpAccessTokenInput, setMpAccessTokenInput] = useState("");
   const [mpPublicKeyInput, setMpPublicKeyInput] = useState("");
+  const [mpWebhookSecretInput, setMpWebhookSecretInput] = useState("");
   const [mpSaving, setMpSaving] = useState(false);
   const [mpSaved, setMpSaved] = useState(false);
   const [mpError, setMpError] = useState<string | null>(null);
@@ -80,6 +82,7 @@ export function SettingsClient({ initialWeekStartDay, mpStatus, tenantInfo }: Pr
     const body: Record<string, unknown> = { tenantSlug };
     if (mpAccessTokenInput.trim()) body.accessToken = mpAccessTokenInput.trim();
     if (mpPublicKeyInput.trim()) body.publicKey = mpPublicKeyInput.trim();
+    if (mpWebhookSecretInput.trim()) body.webhookSecret = mpWebhookSecretInput.trim();
     body.enabled = mp.enabled;
 
     try {
@@ -95,11 +98,13 @@ export function SettingsClient({ initialWeekStartDay, mpStatus, tenantInfo }: Pr
         setMpSaved(true);
         setMpAccessTokenInput("");
         setMpPublicKeyInput("");
+        setMpWebhookSecretInput("");
         // refrescar estado local
         setMp(prev => ({
           ...prev,
           hasAccessToken: prev.hasAccessToken || !!body.accessToken,
           hasPublicKey: prev.hasPublicKey || !!body.publicKey,
+          hasWebhookSecret: prev.hasWebhookSecret || !!body.webhookSecret,
         }));
         setTimeout(() => setMpSaved(false), 3000);
       }
@@ -119,9 +124,10 @@ export function SettingsClient({ initialWeekStartDay, mpStatus, tenantInfo }: Pr
         method: "DELETE",
       });
       if (res.ok) {
-        setMp({ enabled: false, hasAccessToken: false, hasPublicKey: false });
+        setMp({ enabled: false, hasAccessToken: false, hasPublicKey: false, hasWebhookSecret: false });
         setMpAccessTokenInput("");
         setMpPublicKeyInput("");
+        setMpWebhookSecretInput("");
       } else {
         const data = await res.json();
         setMpError(data.error ?? "Error al desconectar");
@@ -426,6 +432,24 @@ export function SettingsClient({ initialWeekStartDay, mpStatus, tenantInfo }: Pr
               className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors"
               autoComplete="off"
             />
+          </div>
+
+          {/* Webhook Secret */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Webhook Secret
+            </label>
+            <input
+              type="password"
+              value={mpWebhookSecretInput}
+              onChange={(e) => setMpWebhookSecretInput(e.target.value)}
+              placeholder={mp.hasWebhookSecret ? "(ya configurado · pega uno nuevo para reemplazar)" : "Clave de firma del webhook MP"}
+              className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors"
+              autoComplete="off"
+            />
+            <p className="text-xs text-gray-400 mt-1.5">
+              Se obtiene en Mercado Pago → Tu integración → Webhooks. Se guarda encriptado.
+            </p>
           </div>
 
           {/* Toggle activar */}
