@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTenantBySlug } from "@/lib/tenant";
+import { getAdminSession } from "@/lib/admin-session";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,19 @@ export async function GET(req: Request) {
   if (!tenantSlug) {
     return NextResponse.json({ error: "tenantSlug requerido" }, { status: 400 });
   }
+
+  const session = await getAdminSession(tenantSlug);
+
+
+  if (!session) {
+
+
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+
+  }
+
+
 
   const tenant = await getTenantBySlug(tenantSlug);
   if (!tenant) {

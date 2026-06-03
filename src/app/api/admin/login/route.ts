@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createAdminSession } from '@/lib/admin-session';
+import bcrypt from 'bcryptjs';
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,6 +11,7 @@ export async function POST(req: NextRequest) {
     if (!tenantSlug || typeof tenantSlug !== 'string') {
       return NextResponse.json({ error: 'tenantSlug requerido' }, { status: 400 });
     }
+
     if (!adminKey || typeof adminKey !== 'string') {
       return NextResponse.json({ error: 'adminKey requerido' }, { status: 400 });
     }
@@ -19,11 +21,20 @@ export async function POST(req: NextRequest) {
       select: { id: true, slug: true, adminKey: true, isActive: true },
     });
 
-    if (!tenant || !tenant.isActive) {
+    if (!tenant || !tenant.isActive || !tenant.adminKey) {
       return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
     }
 
-    if (tenant.adminKey !== adminKey) {
+    const isHashed = tenant.adminKey.startsWith('$2a$') || tenant.adminKey.startsWith('$2b$');
+    let isValid = false;
+
+    if (isHashed) {
+      isValid = await bcrypt.compare(adminKey, tenant.adminKey);
+    } else {
+      isValid = tenant.adminKey === adminKey;
+    }
+
+    if (!isValid) {
       return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
     }
 

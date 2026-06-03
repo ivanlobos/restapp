@@ -18,17 +18,25 @@ export function WaiterCalls() {
 
   const fetchCalls = async () => {
     if (!tenantSlug) return;
-    const res = await fetch(`/api/waiter?tenantSlug=${tenantSlug}`);
-    if (res.ok) setCalls(await res.json());
+    try {
+      const res = await fetch(`/api/waiter?tenantSlug=${tenantSlug}`);
+      if (res.ok) setCalls(await res.json());
+    } catch {
+      // Silenciar error de red (primer intento o conexión intermitente)
+    }
   };
 
   const attend = async (id: string) => {
-    await fetch("/api/waiter", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, tenantSlug }),
-    });
-    setCalls((prev) => prev.filter((c) => c.id !== id));
+    try {
+      await fetch("/api/waiter", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, tenantSlug }),
+      });
+      setCalls((prev) => prev.filter((c) => c.id !== id));
+    } catch {
+      console.error("Error al atender llamado");
+    }
   };
 
   useEffect(() => {

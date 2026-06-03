@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTenantBySlug } from "@/lib/tenant";
+import { getAdminSession } from "@/lib/admin-session";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -10,6 +11,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!tenantSlug) {
     return NextResponse.json({ error: "tenantSlug requerido" }, { status: 400 });
   }
+
+  const session = await getAdminSession(tenantSlug);
+
+
+  if (!session) {
+
+
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+
+  }
+
+
 
   const tenant = await getTenantBySlug(tenantSlug);
   if (!tenant) {
@@ -41,6 +55,19 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   if (!tenantSlug) {
     return NextResponse.json({ error: "tenantSlug requerido" }, { status: 400 });
   }
+
+  const session = await getAdminSession(tenantSlug);
+
+
+  if (!session) {
+
+
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+
+  }
+
+
 
   const tenant = await getTenantBySlug(tenantSlug);
   if (!tenant) {
