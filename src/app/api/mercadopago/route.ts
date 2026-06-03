@@ -103,7 +103,8 @@ export async function POST(req: NextRequest) {
           failure: failureUrl,
           pending: pendingUrl,
         },
-        auto_return: "approved",
+        ...(baseUrl.startsWith('https') ? { auto_return: 'approved' as const } : {}),
+        notification_url: `${baseUrl}/api/payments/mp-webhook?tenant=${tenantSlug}`,
         external_reference: order.id,
         metadata: {
           tenantId: tenant.id,
