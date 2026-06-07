@@ -101,6 +101,7 @@ model Order {
   updatedAt       DateTime    @updatedAt
   items           OrderItem[]
   email           String?
+  deliveryPreference   String?
 
   @@index([tenantId])
   @@index([tableId])

@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { calcTip } from "@/lib/utils";
 import { getTenantBySlug } from "@/lib/tenant";
 
-// Regex email simple (no perfecto pero suficiente: bloquea injections obvias)
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type ValidatedBody = {
@@ -14,6 +13,7 @@ type ValidatedBody = {
   includeTip: boolean;
   tipPercent: number;
   items: { productId: string; quantity: number }[];
+  deliveryPreference: string | null;
 };
 
 function validateBody(body: unknown): { ok: true; data: ValidatedBody } | { ok: false; error: string } {
@@ -79,9 +79,27 @@ function validateBody(body: unknown): { ok: true; data: ValidatedBody } | { ok: 
     items.push({ productId: ito.productId, quantity: ito.quantity });
   }
 
+  const VALID_PREFERENCES = ["DRINKS_FIRST", "TOGETHER"];
+  let deliveryPreference: string | null = null;
+  if (b.deliveryPreference !== undefined && b.deliveryPreference !== null && b.deliveryPreference !== "") {
+    if (typeof b.deliveryPreference !== "string" || !VALID_PREFERENCES.includes(b.deliveryPreference)) {
+      return { ok: false, error: "deliveryPreference inválido" };
+    }
+    deliveryPreference = b.deliveryPreference;
+  }
+
   return {
     ok: true,
-    data: { tenantSlug: b.tenantSlug, tableId: b.tableId, customerName, email, includeTip, tipPercent, items },
+    data: {
+      tenantSlug: b.tenantSlug,
+      tableId: b.tableId,
+      customerName,
+      email,
+      includeTip,
+      tipPercent,
+      items,
+      deliveryPreference,
+    },
   };
 }
 
@@ -133,20 +151,19 @@ export async function POST(req: Request) {
   if (!v.ok) {
     return NextResponse.json({ error: v.error }, { status: 400 });
   }
-  const { tenantSlug, tableId, customerName, email, includeTip, tipPercent, items } = v.data;
+
+  const { tenantSlug, tableId, customerName, email, includeTip, tipPercent, items, deliveryPreference } = v.data;
 
   const tenant = await getTenantBySlug(tenantSlug);
   if (!tenant) {
     return NextResponse.json({ error: "Tenant no encontrado" }, { status: 404 });
   }
 
-  // Validar que la mesa pertenezca al tenant
   const table = await prisma.table.findUnique({ where: { id: tableId } });
   if (!table || !table.isActive || table.tenantId !== tenant.id) {
     return NextResponse.json({ error: "Mesa no válida" }, { status: 404 });
   }
 
-  // Fetch products del tenant para validar precios
   const productIds = items.map((i) => i.productId);
   const products = await prisma.product.findMany({
     where: { id: { in: productIds }, tenantId: tenant.id, isAvailable: true },
@@ -184,6 +201,7 @@ export async function POST(req: Request) {
         tipAmount,
         total,
         includeTip,
+        deliveryPreference: deliveryPreference ?? null,
         items: { create: orderItems },
       },
       include: {
