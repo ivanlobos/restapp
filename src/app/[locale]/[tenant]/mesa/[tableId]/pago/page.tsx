@@ -8,12 +8,15 @@ import { ArrowLeft, Loader2, Receipt } from "lucide-react";
 import Link from "next/link";
 import { MercadoPagoButton } from "@/components/customer/MercadoPagoButton";
 
+type DeliveryPreference = "DRINKS_FIRST" | "TOGETHER" | null;
+
 export default function PagoPage({ params }: { params: Promise<{ tableId: string }> }) {
   const { tableId } = use(params);
   const router = useRouter();
   const routeParams = useParams();
   const locale = (routeParams?.locale as string) ?? "es";
   const tenantSlug = (routeParams?.tenant as string) ?? "";
+
   const {
     customerName,
     email,
@@ -29,54 +32,110 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
 
   const initRan = useRef(false);
   const [orderId, setOrderId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [showModal, setShowModal] = useState(false);
+  const [deliveryPreference, setDeliveryPreference] = useState<DeliveryPreference>(null);
 
   const subtotal = getSubtotal();
   const tip = getTip();
   const total = getTotal();
 
+  const shouldShowModal = items.length > 0;
+
   useEffect(() => {
-    if (initRan.current) return;
-    initRan.current = true;
     if (!customerName || storeTableId !== tableId || storeTenantSlug !== tenantSlug || items.length === 0) {
       router.replace(`/${locale}/${tenantSlug}/mesa/${tableId}`);
       return;
     }
-
-    const init = async () => {
-      try {
-        const orderRes = await fetch("/api/orders", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            tenantSlug,
-            tableId,
-            customerName,
-            email: email ?? undefined,
-            includeTip,
-            tipPercent,
-            items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
-          }),
-        });
-
-        if (!orderRes.ok) {
-          const data = await orderRes.json();
-          throw new Error(data.error ?? "Error al crear pedido");
-        }
-
-        const order = await orderRes.json();
-        setOrderId(order.id);
-      } catch (err) {
-        setError((err as Error).message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    init();
+    if (shouldShowModal) {
+      setShowModal(true);
+    } else {
+      createOrder(null);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const createOrder = async (preference: DeliveryPreference) => {
+    if (initRan.current) return;
+    initRan.current = true;
+    setLoading(true);
+    try {
+      const orderRes = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tenantSlug,
+          tableId,
+          customerName,
+          email: email ?? undefined,
+          includeTip,
+          tipPercent,
+          items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+          deliveryPreference: preference,
+        }),
+      });
+
+      if (!orderRes.ok) {
+        const data = await orderRes.json();
+        throw new Error(data.error ?? "Error al crear pedido");
+      }
+
+      const order = await orderRes.json();
+      setOrderId(order.id);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePreferenceSelect = (preference: DeliveryPreference) => {
+    setDeliveryPreference(preference);
+    setShowModal(false);
+    createOrder(preference);
+  };
+
+  if (showModal) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl shadow-lg p-6 max-w-sm w-full">
+          <div className="text-center mb-6">
+            <p className="text-4xl mb-3">🍺🍽️</p>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">
+              ¿Cómo prefieres recibir tu pedido?
+            </h2>
+            <p className="text-sm text-gray-500">
+              Tienes bebestibles y comida en tu pedido
+            </p>
+          </div>
+          <div className="space-y-3">
+            <button
+              onClick={() => handlePreferenceSelect("DRINKS_FIRST")}
+              className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-amber-200 hover:border-amber-500 hover:bg-amber-50 transition-all text-left"
+            >
+              <span className="text-2xl">🍺</span>
+              <div>
+                <p className="font-semibold text-gray-900">Bebestible primero</p>
+                <p className="text-xs text-gray-500">Recibo el trago mientras espero la comida</p>
+              </div>
+            </button>
+            <button
+              onClick={() => handlePreferenceSelect("TOGETHER")}
+              className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 hover:border-amber-500 hover:bg-amber-50 transition-all text-left"
+            >
+              <span className="text-2xl">🍽️</span>
+              <div>
+                <p className="font-semibold text-gray-900">Todo junto</p>
+                <p className="text-xs text-gray-500">Prefiero recibir todo al mismo tiempo</p>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -120,7 +179,17 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
       </div>
 
       <div className="px-4 py-5 space-y-5 max-w-lg mx-auto">
-        {/* Order summary */}
+        {deliveryPreference && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3">
+            <span className="text-xl">{deliveryPreference === "DRINKS_FIRST" ? "🍺" : "🍽️"}</span>
+            <p className="text-sm text-amber-800 font-medium">
+              {deliveryPreference === "DRINKS_FIRST"
+                ? "Recibirás tu bebestible primero"
+                : "Recibirás todo junto"}
+            </p>
+          </div>
+        )}
+
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
           <div className="flex items-center gap-2 mb-3">
             <Receipt size={18} className="text-amber-500" />
@@ -152,10 +221,8 @@ export default function PagoPage({ params }: { params: Promise<{ tableId: string
           </div>
         </div>
 
-        {/* Payment */}
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
           <h2 className="font-semibold text-gray-800 mb-4">Datos de pago</h2>
-
           {orderId && (
             <MercadoPagoButton
               total={total}
