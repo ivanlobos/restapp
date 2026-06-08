@@ -19,6 +19,7 @@ interface Order {
   createdAt: string;
   table: Table;
   items: OrderItem[];
+  deliveryPreference: string | null;
 }
 
 const STATUSES = ["PENDING", "PROCESSING", "PAID", "PREPARING", "DELIVERED"] as const;
@@ -69,7 +70,6 @@ export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
   const locale = params?.locale as string;
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
-  // deliveredItems: { [orderId]: Set<itemId> }
   const [deliveredItems, setDeliveredItems] = useState<Record<string, Set<string>>>({});
 
   useEffect(() => {
@@ -172,13 +172,20 @@ export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
                       {new Date(order.createdAt).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${badgeColor[order.status] ?? ""}`}>
-                    {statusLabel[order.status]}
-                </span>
-              <a href={`/${locale}/${tenantSlug}/admin/pedidos/${order.id}/print`} target="_blank" className="text-xs text-gray-400 hover:text-gray-600 underline mt-1">
-            🖨️ Comanda
-          </a>
-              </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${badgeColor[order.status] ?? ""}`}>
+                      {statusLabel[order.status]}
+                    </span>
+                    {order.deliveryPreference && (
+                      <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-amber-100 text-amber-700">
+                        {order.deliveryPreference === "DRINKS_FIRST" ? "🍺 Bebestible primero" : "🍽️ Todo junto"}
+                      </span>
+                    )}
+                    <a href={`/${locale}/${tenantSlug}/admin/pedidos/${order.id}/print`} target="_blank" className="text-xs text-gray-400 hover:text-gray-600 underline mt-1">
+                      🖨️ Comanda
+                    </a>
+                  </div>
+                </div>
 
                 {/* Items */}
                 <div className="space-y-1.5 mb-3">
@@ -210,7 +217,7 @@ export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
                   })}
                 </div>
 
-                {/* Progreso de entrega (solo en PREPARING con entregas parciales) */}
+                {/* Progreso de entrega */}
                 {isPreparing && someDelivered && (
                   <p className="text-xs text-amber-600 font-medium mb-2">
                     {delivered.size} de {order.items.length} ítems entregados
