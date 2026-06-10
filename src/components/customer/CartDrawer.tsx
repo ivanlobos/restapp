@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { ShoppingCart, X, Plus, Minus, Trash2 } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { formatCLP } from "@/lib/utils";
+import { WaiterButton } from "@/components/customer/WaiterButton";
 
 interface CartDrawerProps {
   tableId?: string;
@@ -55,13 +56,18 @@ export function CartDrawer({ tableId: propTableId, tenantSlug }: CartDrawerProps
           open ? "translate-y-0" : "translate-y-full"
         }`}
       >
+        {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="font-bold text-lg">Tu pedido</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="font-bold text-lg">Tu pedido</h2>
+            <WaiterButton tenantSlug={tenantSlug} tableId={tableId ?? ""} compact />
+          </div>
           <button onClick={() => setOpen(false)} className="p-1 rounded-full hover:bg-gray-100">
             <X size={20} />
           </button>
         </div>
 
+        {/* Items */}
         <div className="overflow-y-auto flex-1 p-4 space-y-3">
           {items.map((item) => (
             <div key={item.productId} className="flex items-center gap-3">
@@ -97,6 +103,7 @@ export function CartDrawer({ tableId: propTableId, tenantSlug }: CartDrawerProps
           ))}
         </div>
 
+        {/* Footer */}
         <div className="p-4 border-t space-y-2 bg-gray-50">
           <div className="flex justify-between text-sm text-gray-600">
             <span>Subtotal</span>

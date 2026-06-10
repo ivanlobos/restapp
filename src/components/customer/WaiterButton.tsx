@@ -6,9 +6,10 @@ import { BellRing, Check } from "lucide-react";
 interface WaiterButtonProps {
   tableId: string;
   tenantSlug: string;
+  compact?: boolean;
 }
 
-export function WaiterButton({ tableId, tenantSlug }: WaiterButtonProps) {
+export function WaiterButton({ tableId, tenantSlug, compact = false }: WaiterButtonProps) {
   const [status, setStatus] = useState<"idle" | "loading" | "sent">("idle");
 
   const handleCall = async () => {
@@ -26,6 +27,26 @@ export function WaiterButton({ tableId, tenantSlug }: WaiterButtonProps) {
       setStatus("idle");
     }
   };
+
+  if (compact) {
+    return (
+      <button
+        onClick={handleCall}
+        disabled={status === "loading" || status === "sent"}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+          status === "sent"
+            ? "bg-green-50 text-green-700 border-green-200"
+            : "bg-white text-gray-600 border-gray-200 hover:border-amber-300 hover:text-amber-600"
+        }`}
+      >
+        {status === "sent" ? (
+          <><Check size={13} /> ¡En camino!</>
+        ) : (
+          <><BellRing size={13} className={status === "loading" ? "animate-bounce" : ""} /> Llamar garzón</>
+        )}
+      </button>
+    );
+  }
 
   return (
     <button
