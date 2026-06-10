@@ -4,7 +4,6 @@ import { useRouter, useParams } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { ProductCard } from "@/components/customer/ProductCard";
 import { CartDrawer } from "@/components/customer/CartDrawer";
-import { WaiterButton } from "@/components/customer/WaiterButton";
 
 interface Product {
   id: string;
@@ -59,7 +58,6 @@ export default function MenuClient({ categories, tableId, table, tenantSlug }: M
       },
       { rootMargin: "-30% 0px -60% 0px" }
     );
-
     Object.values(sectionRefs.current).forEach((el) => {
       if (el) observer.observe(el);
     });
@@ -134,7 +132,6 @@ export default function MenuClient({ categories, tableId, table, tenantSlug }: M
       </div>
 
       <CartDrawer tableId={tableId} tenantSlug={tenantSlug} />
-      <WaiterButton tableId={tableId} tenantSlug={tenantSlug} />
     </div>
   );
 }
