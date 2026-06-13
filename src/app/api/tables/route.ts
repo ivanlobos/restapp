@@ -46,6 +46,7 @@ export async function GET(req: Request) {
           status: true,
           total: true,
           createdAt: true,
+          updatedAt: true,
           items: { select: { quantity: true } },
         },
         orderBy: { createdAt: "desc" },

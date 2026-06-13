@@ -25,8 +25,9 @@ model Tenant {
   mpWebhookSecret   String?
   mpEnabled         Boolean  @default(false)
   adminKey          String   @unique
-  isActive          Boolean  @default(true)
-  createdAt         DateTime @default(now())
+  isActive                  Boolean  @default(true)
+  tableAutoReleaseMinutes   Int      @default(30)
+  createdAt                 DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   tables       Table[]
@@ -45,6 +46,9 @@ model Table {
   number      Int
   label       String?
   isActive    Boolean  @default(true)
+  status      String   @default("FREE")
+  releasedAt  DateTime?
+  capacity    Int?
   createdAt   DateTime @default(now())
   orders      Order[]
   waiterCalls WaiterCall[]

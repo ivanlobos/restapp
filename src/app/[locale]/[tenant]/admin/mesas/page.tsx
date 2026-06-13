@@ -29,6 +29,7 @@ export default async function MesasPage({ params }: MesasPageProps) {
           status: true,
           total: true,
           createdAt: true,
+          updatedAt: true,
           items: {
             select: {
               quantity: true,
@@ -52,5 +53,10 @@ export default async function MesasPage({ params }: MesasPageProps) {
     },
   });
 
-  return <MesasClient initialTables={tables} />;
+  return (
+    <MesasClient
+      initialTables={tables}
+      tableAutoReleaseMinutes={tenant.tableAutoReleaseMinutes}
+    />
+  );
 }
