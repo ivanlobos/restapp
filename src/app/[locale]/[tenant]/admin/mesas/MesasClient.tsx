@@ -240,7 +240,7 @@ export function MesasClient({ initialTables, tableAutoReleaseMinutes }: MesasCli
                 {status === "free" && table.releasedAt && (
                   <p className="text-[10px] text-gray-400 mt-1">Liberada {timeAgo(table.releasedAt)}</p>
                 )}
-                {activeOrder && (
+                {activeOrder && status === "occupied" && (
                   <div className="mt-3 pt-3 border-t border-gray-200/50">
                     <p className="text-xs font-medium text-gray-700 truncate">{activeOrder.customerName}</p>
                     <div className="flex items-center justify-between mt-1">
