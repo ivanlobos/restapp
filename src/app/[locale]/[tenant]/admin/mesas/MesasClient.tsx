@@ -148,8 +148,6 @@ export function MesasClient({ initialTables, tableAutoReleaseMinutes }: MesasCli
     if (res.ok) {
       const updated = await res.json();
       setTables(updated);
-      console.log("refreshTables - updated tables:", updated);
-      console.log("refreshTables - setTables ejecutado");
     }
   };
 
@@ -173,7 +171,6 @@ export function MesasClient({ initialTables, tableAutoReleaseMinutes }: MesasCli
       }
       const updated = await res.json();
       setTables((prev) => prev.map((t) => (t.id === updated.id ? { ...t, ...updated } : t)));
-      console.log("handleRelease - optimistic update done");
       await refreshTables();
     } catch (err) {
       setReleaseError(`Error al liberar la mesa: ${err instanceof Error ? err.message : "Error desconocido"}`);
