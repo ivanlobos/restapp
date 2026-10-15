@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { Settings, Check, CreditCard, Link2, Link2Off, Store } from "lucide-react";
+import { Settings, Check, CreditCard, Link2, Link2Off, Store, KeyRound, Eye, EyeOff } from "lucide-react";
 
 const DAYS = [
   { value: 0, label: "Domingo" },
@@ -136,6 +136,45 @@ export function SettingsClient({ initialWeekStartDay, mpStatus, tenantInfo }: Pr
       setMpError("Error de conexión");
     } finally {
       setMpDisconnecting(false);
+    }
+  };
+
+  // --- Cambio de contraseña ---
+  const [pwCurrent, setPwCurrent] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [pwShowCurrent, setPwShowCurrent] = useState(false);
+  const [pwShowNew, setPwShowNew] = useState(false);
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwSaved, setPwSaved] = useState(false);
+  const [pwError, setPwError] = useState<string | null>(null);
+
+  const handlePasswordSave = async () => {
+    setPwError(null);
+    if (!pwCurrent) { setPwError("Ingresa tu contraseña actual"); return; }
+    if (pwNew.length < 6) { setPwError("La nueva contraseña debe tener al menos 6 caracteres"); return; }
+    if (pwNew !== pwConfirm) { setPwError("Las contraseñas no coinciden"); return; }
+    setPwSaving(true);
+    try {
+      const res = await fetch("/api/settings/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tenantSlug, currentPassword: pwCurrent, newPassword: pwNew }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPwError(data.error ?? "Error al cambiar contraseña");
+      } else {
+        setPwSaved(true);
+        setPwCurrent("");
+        setPwNew("");
+        setPwConfirm("");
+        setTimeout(() => setPwSaved(false), 3000);
+      }
+    } catch {
+      setPwError("Error de conexión");
+    } finally {
+      setPwSaving(false);
     }
   };
 
@@ -378,6 +417,108 @@ export function SettingsClient({ initialWeekStartDay, mpStatus, tenantInfo }: Pr
           <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">
             {saved ? <><Check size={14} /> Guardado</> : saving ? "Guardando..." : "Guardar cambios"}
           </button>
+        </div>
+      </div>
+
+      {/* CARD: Seguridad */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-4">
+        <div className="p-5 border-b border-gray-100 flex items-center gap-2">
+          <KeyRound size={18} className="text-amber-600" />
+          <h2 className="font-semibold text-gray-800">Seguridad</h2>
+        </div>
+        <div className="p-5 space-y-4">
+          <p className="text-xs text-gray-500">
+            Cambia la contraseña de acceso al panel de administración.
+          </p>
+
+          {/* Contraseña actual */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Contraseña actual
+            </label>
+            <div className="relative">
+              <input
+                type={pwShowCurrent ? "text" : "password"}
+                value={pwCurrent}
+                onChange={(e) => setPwCurrent(e.target.value)}
+                placeholder="Tu contraseña actual"
+                className="w-full px-3 py-2.5 pr-10 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors"
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                onClick={() => setPwShowCurrent(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                tabIndex={-1}
+              >
+                {pwShowCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Nueva contraseña */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Nueva contraseña
+            </label>
+            <div className="relative">
+              <input
+                type={pwShowNew ? "text" : "password"}
+                value={pwNew}
+                onChange={(e) => setPwNew(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                className="w-full px-3 py-2.5 pr-10 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors"
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                onClick={() => setPwShowNew(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                tabIndex={-1}
+              >
+                {pwShowNew ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Confirmar nueva contraseña */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Confirmar nueva contraseña
+            </label>
+            <input
+              type="password"
+              value={pwConfirm}
+              onChange={(e) => setPwConfirm(e.target.value)}
+              placeholder="Repite la nueva contraseña"
+              className={
+                "w-full px-3 py-2.5 text-sm rounded-xl border outline-none transition-colors " +
+                (pwConfirm && pwConfirm !== pwNew
+                  ? "border-red-300 focus:border-red-400 focus:ring-1 focus:ring-red-300"
+                  : "border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500")
+              }
+              autoComplete="new-password"
+            />
+            {pwConfirm && pwConfirm !== pwNew && (
+              <p className="text-xs text-red-500 mt-1">Las contraseñas no coinciden</p>
+            )}
+          </div>
+
+          {pwError && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+              <p className="text-sm text-red-700">{pwError}</p>
+            </div>
+          )}
+
+          <div className="pt-1">
+            <button
+              onClick={handlePasswordSave}
+              disabled={pwSaving}
+              className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors"
+            >
+              {pwSaved ? <><Check size={14} /> Contraseña actualizada</> : pwSaving ? "Guardando..." : "Cambiar contraseña"}
+            </button>
+          </div>
         </div>
       </div>
 
