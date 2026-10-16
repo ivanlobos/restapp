@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { Settings, Check, CreditCard, Link2, Link2Off, Store } from "lucide-react";
+import { Settings, Check, CreditCard, Link2, Link2Off, Store, KeyRound, Eye, EyeOff } from "lucide-react";
 
 const DAYS = [
   { value: 0, label: "Domingo" },
@@ -99,7 +99,6 @@ export function SettingsClient({ initialWeekStartDay, mpStatus, tenantInfo }: Pr
         setMpAccessTokenInput("");
         setMpPublicKeyInput("");
         setMpWebhookSecretInput("");
-        // refrescar estado local
         setMp(prev => ({
           ...prev,
           hasAccessToken: prev.hasAccessToken || !!body.accessToken,
@@ -139,6 +138,45 @@ export function SettingsClient({ initialWeekStartDay, mpStatus, tenantInfo }: Pr
     }
   };
 
+  // --- Cambio de contraseña ---
+  const [pwCurrent, setPwCurrent] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [pwShowCurrent, setPwShowCurrent] = useState(false);
+  const [pwShowNew, setPwShowNew] = useState(false);
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwSaved, setPwSaved] = useState(false);
+  const [pwError, setPwError] = useState<string | null>(null);
+
+  const handlePasswordSave = async () => {
+    setPwError(null);
+    if (!pwCurrent) { setPwError("Ingresa tu contraseña actual"); return; }
+    if (pwNew.length < 6) { setPwError("La nueva contraseña debe tener al menos 6 caracteres"); return; }
+    if (pwNew !== pwConfirm) { setPwError("Las contraseñas no coinciden"); return; }
+    setPwSaving(true);
+    try {
+      const res = await fetch("/api/settings/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tenantSlug, currentPassword: pwCurrent, newPassword: pwNew }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPwError(data.error ?? "Error al cambiar contraseña");
+      } else {
+        setPwSaved(true);
+        setPwCurrent("");
+        setPwNew("");
+        setPwConfirm("");
+        setTimeout(() => setPwSaved(false), 3000);
+      }
+    } catch {
+      setPwError("Error de conexión");
+    } finally {
+      setPwSaving(false);
+    }
+  };
+
   // --- Datos del restaurante ---
   const [tenant, setTenant] = useState<TenantInfo>(tenantInfo);
   const [tenantSaving, setTenantSaving] = useState(false);
@@ -174,7 +212,6 @@ export function SettingsClient({ initialWeekStartDay, mpStatus, tenantInfo }: Pr
         setTenantError(data.error ?? "Error al guardar");
       } else {
         setTenantSaved(true);
-        // Refrescar estado con valores normalizados del backend (vacios -> null -> "")
         setTenant({
           name: data.name ?? "",
           address: data.address ?? "",
@@ -213,142 +250,51 @@ export function SettingsClient({ initialWeekStartDay, mpStatus, tenantInfo }: Pr
           <p className="text-xs text-gray-500">
             Información que aparece en boletas, headers y otros lugares del sistema.
           </p>
-
-          {/* Nombre comercial */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Nombre comercial <span className="text-red-500">*</span>
             </label>
-            <input
-              type="text"
-              value={tenant.name}
-              onChange={(e) => handleTenantChange("name", e.target.value)}
-              placeholder="Bar Imperial"
-              className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors"
-            />
+            <input type="text" value={tenant.name} onChange={(e) => handleTenantChange("name", e.target.value)} placeholder="Bar Imperial" className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors" />
           </div>
-
-          {/* Razón social */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Razón social
-            </label>
-            <input
-              type="text"
-              value={tenant.legalName}
-              onChange={(e) => handleTenantChange("legalName", e.target.value)}
-              placeholder="Comercial Imperial SpA"
-              className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Razón social</label>
+            <input type="text" value={tenant.legalName} onChange={(e) => handleTenantChange("legalName", e.target.value)} placeholder="Comercial Imperial SpA" className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors" />
           </div>
-
-          {/* RUT */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              RUT
-            </label>
-            <input
-              type="text"
-              value={tenant.taxId}
-              onChange={(e) => handleTenantChange("taxId", e.target.value)}
-              placeholder="76.123.456-7"
-              className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">RUT</label>
+            <input type="text" value={tenant.taxId} onChange={(e) => handleTenantChange("taxId", e.target.value)} placeholder="76.123.456-7" className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors" />
           </div>
-
-          {/* Dirección */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Dirección
-            </label>
-            <input
-              type="text"
-              value={tenant.address}
-              onChange={(e) => handleTenantChange("address", e.target.value)}
-              placeholder="Av. Pajaritos 1234, Maipú"
-              className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Dirección</label>
+            <input type="text" value={tenant.address} onChange={(e) => handleTenantChange("address", e.target.value)} placeholder="Av. Pajaritos 1234, Maipú" className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors" />
           </div>
-
-          {/* Teléfono y Email lado a lado */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Teléfono
-              </label>
-              <input
-                type="tel"
-                value={tenant.phone}
-                onChange={(e) => handleTenantChange("phone", e.target.value)}
-                placeholder="+56 9 1234 5678"
-                className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors"
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Teléfono</label>
+              <input type="tel" value={tenant.phone} onChange={(e) => handleTenantChange("phone", e.target.value)} placeholder="+56 9 1234 5678" className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Email
-              </label>
-              <input
-                type="email"
-                value={tenant.email}
-                onChange={(e) => handleTenantChange("email", e.target.value)}
-                placeholder="contacto@imperial.cl"
-                className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors"
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+              <input type="email" value={tenant.email} onChange={(e) => handleTenantChange("email", e.target.value)} placeholder="contacto@imperial.cl" className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors" />
             </div>
           </div>
-
-          {/* Logo URL */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Logo (URL)
-            </label>
-            <input
-              type="url"
-              value={tenant.logoUrl}
-              onChange={(e) => handleTenantChange("logoUrl", e.target.value)}
-              placeholder="https://example.com/logo.png"
-              className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Logo (URL)</label>
+            <input type="url" value={tenant.logoUrl} onChange={(e) => handleTenantChange("logoUrl", e.target.value)} placeholder="https://example.com/logo.png" className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors" />
             {tenant.logoUrl && (
               /* eslint-disable-next-line @next/next/no-img-element */
-              <img
-                src={tenant.logoUrl}
-                alt="Logo preview"
-                className="mt-2 h-12 w-auto rounded border border-gray-200 object-contain bg-gray-50 p-1"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-              />
+              <img src={tenant.logoUrl} alt="Logo preview" className="mt-2 h-12 w-auto rounded border border-gray-200 object-contain bg-gray-50 p-1" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
             )}
           </div>
-
-          {/* Moneda */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Moneda
-            </label>
-            <select
-              value={tenant.currency}
-              onChange={(e) => handleTenantChange("currency", e.target.value)}
-              className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors bg-white"
-            >
-              {CURRENCIES.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Moneda</label>
+            <select value={tenant.currency} onChange={(e) => handleTenantChange("currency", e.target.value)} className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors bg-white">
+              {CURRENCIES.map(c => (<option key={c} value={c}>{c}</option>))}
             </select>
           </div>
-
-          {tenantError && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-              <p className="text-sm text-red-700">{tenantError}</p>
-            </div>
-          )}
-
+          {tenantError && (<div className="bg-red-50 border border-red-200 rounded-xl p-3"><p className="text-sm text-red-700">{tenantError}</p></div>)}
           <div className="pt-1">
-            <button
-              onClick={handleTenantSave}
-              disabled={tenantSaving}
-              className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors"
-            >
+            <button onClick={handleTenantSave} disabled={tenantSaving} className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">
               {tenantSaved ? <><Check size={14} /> Guardado</> : tenantSaving ? "Guardando..." : "Guardar cambios"}
             </button>
           </div>
@@ -362,9 +308,7 @@ export function SettingsClient({ initialWeekStartDay, mpStatus, tenantInfo }: Pr
           <h2 className="font-semibold text-gray-800">Analítica</h2>
         </div>
         <div className="p-5">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Primer día de la semana laboral
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-3">Primer día de la semana laboral</label>
           <div className="grid grid-cols-7 gap-2 mb-2">
             {DAYS.map(({ value, label }) => (
               <button key={value} onClick={() => setWeekStartDay(value)} className={"rounded-xl py-2.5 text-xs font-medium transition-colors border " + (weekStartDay === value ? "bg-amber-500 text-white border-amber-500" : "bg-white text-gray-600 border-gray-200 hover:border-amber-300")}>
@@ -372,12 +316,50 @@ export function SettingsClient({ initialWeekStartDay, mpStatus, tenantInfo }: Pr
               </button>
             ))}
           </div>
-          <p className="text-xs text-gray-400 mb-5">
-            La semana en la analítica comparativa comenzará cada <span className="font-medium text-gray-600">{DAYS[weekStartDay].label}</span>.
-          </p>
+          <p className="text-xs text-gray-400 mb-5">La semana en la analítica comparativa comenzará cada <span className="font-medium text-gray-600">{DAYS[weekStartDay].label}</span>.</p>
           <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">
             {saved ? <><Check size={14} /> Guardado</> : saving ? "Guardando..." : "Guardar cambios"}
           </button>
+        </div>
+      </div>
+
+      {/* CARD: Seguridad */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-4">
+        <div className="p-5 border-b border-gray-100 flex items-center gap-2">
+          <KeyRound size={18} className="text-amber-600" />
+          <h2 className="font-semibold text-gray-800">Seguridad</h2>
+        </div>
+        <div className="p-5 space-y-4">
+          <p className="text-xs text-gray-500">Cambia la contraseña de acceso al panel de administración.</p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Contraseña actual</label>
+            <div className="relative">
+              <input type={pwShowCurrent ? "text" : "password"} value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)} placeholder="Tu contraseña actual" className="w-full px-3 py-2.5 pr-10 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors" autoComplete="current-password" />
+              <button type="button" onClick={() => setPwShowCurrent(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" tabIndex={-1}>
+                {pwShowCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Nueva contraseña</label>
+            <div className="relative">
+              <input type={pwShowNew ? "text" : "password"} value={pwNew} onChange={(e) => setPwNew(e.target.value)} placeholder="Mínimo 6 caracteres" className="w-full px-3 py-2.5 pr-10 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors" autoComplete="new-password" />
+              <button type="button" onClick={() => setPwShowNew(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" tabIndex={-1}>
+                {pwShowNew ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirmar nueva contraseña</label>
+            <input type="password" value={pwConfirm} onChange={(e) => setPwConfirm(e.target.value)} placeholder="Repite la nueva contraseña" className={"w-full px-3 py-2.5 text-sm rounded-xl border outline-none transition-colors " + (pwConfirm && pwConfirm !== pwNew ? "border-red-300 focus:border-red-400 focus:ring-1 focus:ring-red-300" : "border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500")} autoComplete="new-password" />
+            {pwConfirm && pwConfirm !== pwNew && (<p className="text-xs text-red-500 mt-1">Las contraseñas no coinciden</p>)}
+          </div>
+          {pwError && (<div className="bg-red-50 border border-red-200 rounded-xl p-3"><p className="text-sm text-red-700">{pwError}</p></div>)}
+          <div className="pt-1">
+            <button onClick={handlePasswordSave} disabled={pwSaving} className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">
+              {pwSaved ? <><Check size={14} /> Contraseña actualizada</> : pwSaving ? "Guardando..." : "Cambiar contraseña"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -398,97 +380,37 @@ export function SettingsClient({ initialWeekStartDay, mpStatus, tenantInfo }: Pr
             </span>
           )}
         </div>
-
         <div className="p-5 space-y-4">
-          <p className="text-xs text-gray-500">
-            Pega tus credenciales de producción de Mercado Pago. El Access Token se guarda encriptado.
-          </p>
-
-          {/* Access Token */}
+          <p className="text-xs text-gray-500">Pega tus credenciales de producción de Mercado Pago. El Access Token se guarda encriptado.</p>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Access Token
-            </label>
-            <input
-              type="password"
-              value={mpAccessTokenInput}
-              onChange={(e) => setMpAccessTokenInput(e.target.value)}
-              placeholder={mp.hasAccessToken ? "(ya configurado · pega uno nuevo para reemplazar)" : "APP_USR-..."}
-              className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors"
-              autoComplete="off"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Access Token</label>
+            <input type="password" value={mpAccessTokenInput} onChange={(e) => setMpAccessTokenInput(e.target.value)} placeholder={mp.hasAccessToken ? "(ya configurado · pega uno nuevo para reemplazar)" : "APP_USR-..."} className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors" autoComplete="off" />
           </div>
-
-          {/* Public Key */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Public Key
-            </label>
-            <input
-              type="text"
-              value={mpPublicKeyInput}
-              onChange={(e) => setMpPublicKeyInput(e.target.value)}
-              placeholder={mp.hasPublicKey ? "(ya configurado · pega uno nuevo para reemplazar)" : "APP_USR-..."}
-              className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors"
-              autoComplete="off"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Public Key</label>
+            <input type="text" value={mpPublicKeyInput} onChange={(e) => setMpPublicKeyInput(e.target.value)} placeholder={mp.hasPublicKey ? "(ya configurado · pega uno nuevo para reemplazar)" : "APP_USR-..."} className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors" autoComplete="off" />
           </div>
-
-          {/* Webhook Secret */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Webhook Secret
-            </label>
-            <input
-              type="password"
-              value={mpWebhookSecretInput}
-              onChange={(e) => setMpWebhookSecretInput(e.target.value)}
-              placeholder={mp.hasWebhookSecret ? "(ya configurado · pega uno nuevo para reemplazar)" : "Clave de firma del webhook MP"}
-              className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors"
-              autoComplete="off"
-            />
-            <p className="text-xs text-gray-400 mt-1.5">
-              Se obtiene en Mercado Pago → Tu integración → Webhooks. Se guarda encriptado.
-            </p>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Webhook Secret</label>
+            <input type="password" value={mpWebhookSecretInput} onChange={(e) => setMpWebhookSecretInput(e.target.value)} placeholder={mp.hasWebhookSecret ? "(ya configurado · pega uno nuevo para reemplazar)" : "Clave de firma del webhook MP"} className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-colors" autoComplete="off" />
+            <p className="text-xs text-gray-400 mt-1.5">Se obtiene en Mercado Pago → Tu integración → Webhooks. Se guarda encriptado.</p>
           </div>
-
-          {/* Toggle activar */}
           <label className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
             <div>
               <p className="text-sm font-medium text-gray-800">Pagos activados</p>
               <p className="text-xs text-gray-500">Solo se puede activar si hay un Access Token guardado.</p>
             </div>
-            <button
-              type="button"
-              onClick={() => setMp(prev => ({ ...prev, enabled: !prev.enabled }))}
-              disabled={!mp.hasAccessToken && !mpAccessTokenInput.trim()}
-              className={"relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed " + (mp.enabled ? "bg-amber-500" : "bg-gray-300")}
-            >
+            <button type="button" onClick={() => setMp(prev => ({ ...prev, enabled: !prev.enabled }))} disabled={!mp.hasAccessToken && !mpAccessTokenInput.trim()} className={"relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed " + (mp.enabled ? "bg-amber-500" : "bg-gray-300")}>
               <span className={"inline-block h-4 w-4 transform rounded-full bg-white transition-transform " + (mp.enabled ? "translate-x-6" : "translate-x-1")} />
             </button>
           </label>
-
-          {mpError && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-              <p className="text-sm text-red-700">{mpError}</p>
-            </div>
-          )}
-
+          {mpError && (<div className="bg-red-50 border border-red-200 rounded-xl p-3"><p className="text-sm text-red-700">{mpError}</p></div>)}
           <div className="flex items-center gap-3 pt-1">
-            <button
-              onClick={handleMpSave}
-              disabled={mpSaving}
-              className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors"
-            >
+            <button onClick={handleMpSave} disabled={mpSaving} className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">
               {mpSaved ? <><Check size={14} /> Guardado</> : mpSaving ? "Guardando..." : "Guardar credenciales"}
             </button>
-
             {mpIsConfigured && (
-              <button
-                onClick={handleMpDisconnect}
-                disabled={mpDisconnecting}
-                className="text-sm text-red-600 hover:text-red-700 font-medium px-3 py-2.5 disabled:opacity-50"
-              >
+              <button onClick={handleMpDisconnect} disabled={mpDisconnecting} className="text-sm text-red-600 hover:text-red-700 font-medium px-3 py-2.5 disabled:opacity-50">
                 {mpDisconnecting ? "Desconectando..." : "Desconectar"}
               </button>
             )}
