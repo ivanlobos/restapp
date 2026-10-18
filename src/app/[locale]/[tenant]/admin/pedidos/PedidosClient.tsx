@@ -51,7 +51,7 @@ const badgeColor: Record<string, string> = {
 
 const nextStatus: Record<string, string | null> = {
   PENDING: "PROCESSING",
-  PROCESSING: "PAID",
+  PROCESSING: "PREPARING",
   PAID: "PREPARING",
   PREPARING: "DELIVERED",
   DELIVERED: null,
@@ -59,7 +59,7 @@ const nextStatus: Record<string, string | null> = {
 
 const nextStatusLabel: Record<string, string> = {
   PENDING: "Confirmar pedido",
-  PROCESSING: "Marcar como pagado",
+  PROCESSING: "Comenzar a preparar",
   PAID: "Comenzar a preparar",
   PREPARING: "Marcar todo como entregado",
 };
@@ -98,6 +98,7 @@ export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
   };
 
   const allItemsDelivered = (order: Order) => {
+    if (order.items.length === 0) return true;
     const delivered = deliveredItems[order.id];
     if (!delivered) return false;
     return order.items.every((item) => delivered.has(item.id));
