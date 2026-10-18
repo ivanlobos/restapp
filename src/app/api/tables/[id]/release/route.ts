@@ -1,51 +1,46 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getTenantBySlug } from "@/lib/tenant";
 import { getAdminSession } from "@/lib/admin-session";
 
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const body = await req.json();
-  const { tenantSlug } = body;
+export const dynamic = "force-dynamic";
 
-  if (!tenantSlug) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: tableId } = await params;
+
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Body JSON inválido" }, { status: 400 });
+  }
+
+  const { tenantSlug } = body as { tenantSlug?: string };
+
+  if (!tenantSlug || typeof tenantSlug !== "string") {
     return NextResponse.json({ error: "tenantSlug requerido" }, { status: 400 });
   }
 
   const session = await getAdminSession(tenantSlug);
   if (!session) {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
-  const tenant = await getTenantBySlug(tenantSlug);
-  if (!tenant) {
-    return NextResponse.json({ error: "Tenant no encontrado" }, { status: 404 });
-  }
+  // Verificar que la mesa pertenece al tenant
+  const table = await prisma.table.findFirst({
+    where: { id: tableId, tenantId: session.tenantId },
+  });
 
-  const existing = await prisma.table.findUnique({ where: { id } });
-  if (!existing || existing.tenantId !== tenant.id) {
+  if (!table) {
     return NextResponse.json({ error: "Mesa no encontrada" }, { status: 404 });
   }
 
-  await prisma.order.updateMany({
-    where: { tableId: id, status: { not: "PAID" } },
-    data: { status: "PAID" },
+  await prisma.table.update({
+    where: { id: tableId },
+    data: { status: "FREE", releasedAt: new Date() },
   });
 
-  const table = await prisma.table.update({
-    where: { id },
-    data: {
-      status: "FREE",
-      releasedAt: new Date(),
-    },
-    include: {
-      orders: {
-        where: { status: { in: ["PAID", "CANCELLED"] } },
-        select: { id: true, customerName: true, status: true, total: true, createdAt: true, updatedAt: true, items: true },
-      },
-      waiterCalls: true,
-    },
-  });
-
-  return NextResponse.json(table);
+  return NextResponse.json({ ok: true });
 }

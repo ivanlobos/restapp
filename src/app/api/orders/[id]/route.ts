@@ -25,5 +25,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       items: { include: { product: true } },
     },
   });
+
+  // Liberar mesa automáticamente al entregar el pedido
+  if (body.status === "DELIVERED") {
+    try {
+      await prisma.table.update({
+        where: { id: order.tableId },
+        data: { status: "FREE", releasedAt: new Date() },
+      });
+    } catch (err) {
+      console.error(`[orders/patch] error liberando mesa ${order.tableId}`, err);
+    }
+  }
+
   return NextResponse.json(order);
 }

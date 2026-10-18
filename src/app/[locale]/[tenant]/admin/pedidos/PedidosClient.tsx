@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { formatCLP } from "@/lib/utils";
-import { RefreshCw, CheckCircle2, Circle } from "lucide-react";
+import { RefreshCw, CheckCircle2, Circle, DoorOpen } from "lucide-react";
 
 interface Product { id: string; name: string; }
 interface OrderItem { id: string; quantity: number; unitPrice: number; subtotal: number; product: Product; }
@@ -121,6 +121,17 @@ export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
       } else {
         setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
       }
+    }
+  };
+
+  const handleReleaseTable = async (tableId: string, orderId: string) => {
+    const res = await fetch(`/api/tables/${tableId}/release`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tenantSlug }),
+    });
+    if (res.ok) {
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
     }
   };
 
@@ -253,6 +264,17 @@ export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
                     {isPreparing && !allDelivered
                       ? `Faltan ${order.items.length - delivered.size} ítem${order.items.length - delivered.size > 1 ? "s" : ""} por entregar`
                       : nextStatusLabel[order.status]}
+                  </button>
+                )}
+
+                {/* Botón liberar mesa manualmente (para pagos en efectivo u órdenes sin pago digital) */}
+                {order.status !== "DELIVERED" && (
+                  <button
+                    onClick={() => handleReleaseTable(order.table.id, order.id)}
+                    className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs text-gray-400 hover:text-red-500 hover:bg-red-50 py-1.5 rounded-xl transition-colors border border-transparent hover:border-red-200"
+                  >
+                    <DoorOpen size={13} />
+                    Liberar mesa ahora
                   </button>
                 )}
               </div>

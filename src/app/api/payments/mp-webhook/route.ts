@@ -166,6 +166,18 @@ export async function POST(req: NextRequest) {
 
       if (updated.count > 0) {
         console.log(`[mp-webhook] order ${order.id} marcada PAID (tenant=${tenant.slug})`);
+
+        // Liberar mesa automáticamente al pagar
+        try {
+          await prisma.table.update({
+            where: { id: order.tableId },
+            data: { status: "FREE", releasedAt: new Date() },
+          });
+          console.log(`[mp-webhook] mesa ${order.tableId} liberada automáticamente (tenant=${tenant.slug})`);
+        } catch (err) {
+          console.error(`[mp-webhook] error liberando mesa ${order.tableId}`, err);
+          // No fallar el webhook por esto — el pago ya fue procesado
+        }
       } else {
         console.log(`[mp-webhook] order ${order.id} ya estaba PAID (idempotente)`);
       }
