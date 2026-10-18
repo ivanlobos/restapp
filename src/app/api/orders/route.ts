@@ -120,7 +120,18 @@ export async function GET(req: Request) {
 
   const where: Record<string, unknown> = { tenantId: tenant.id };
   if (tableId) where.tableId = tableId;
-  if (status) where.status = { in: status.split(",") };
+  if (status) {
+    const statuses = status.split(",");
+    if (statuses.includes("DELIVERED")) {
+      // Pedidos DELIVERED solo aparecen si la mesa sigue OCCUPIED (no liberada aún)
+      where.OR = [
+        { status: { in: statuses.filter((s) => s !== "DELIVERED") } },
+        { status: "DELIVERED", table: { status: "OCCUPIED" } },
+      ];
+    } else {
+      where.status = { in: statuses };
+    }
+  }
   if (date) {
     const d = new Date(date);
     const next = new Date(d);
