@@ -267,14 +267,14 @@ export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
                   </button>
                 )}
 
-                {/* Botón liberar mesa manualmente (para pagos en efectivo u órdenes sin pago digital) */}
-                {order.status !== "DELIVERED" && (
+                {/* Botón liberar mesa manualmente — visible cuando el cliente ya pagó o el pedido fue entregado */}
+                {(order.status === "PAID" || order.status === "DELIVERED") && (
                   <button
                     onClick={() => handleReleaseTable(order.table.id, order.id)}
-                    className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs text-gray-400 hover:text-red-500 hover:bg-red-50 py-1.5 rounded-xl transition-colors border border-transparent hover:border-red-200"
+                    className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs text-gray-400 hover:text-green-600 hover:bg-green-50 py-1.5 rounded-xl transition-colors border border-transparent hover:border-green-200"
                   >
                     <DoorOpen size={13} />
-                    Liberar mesa ahora
+                    Mesa vacía — liberar
                   </button>
                 )}
               </div>
