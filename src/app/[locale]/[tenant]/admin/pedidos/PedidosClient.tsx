@@ -75,7 +75,7 @@ export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
   useEffect(() => {
     if (!tenantSlug) return;
     const interval = setInterval(async () => {
-      const res = await fetch(`/api/orders?status=PENDING,PROCESSING,PAID,PREPARING&tenantSlug=${tenantSlug}`);
+      const res = await fetch(`/api/orders?status=PENDING,PROCESSING,PAID,PREPARING,DELIVERED&tenantSlug=${tenantSlug}`);
       if (res.ok) {
         const data = await res.json();
         setOrders(data);
@@ -112,15 +112,13 @@ export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
     });
     if (res.ok) {
       const updated = await res.json();
+      setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
       if (status === "DELIVERED") {
-        setOrders((prev) => prev.filter((o) => o.id !== orderId));
         setDeliveredItems((prev) => {
           const next = { ...prev };
           delete next[orderId];
           return next;
         });
-      } else {
-        setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
       }
     }
   };
@@ -148,7 +146,7 @@ export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
         <button
           onClick={async () => {
             if (!tenantSlug) return;
-            const res = await fetch(`/api/orders?status=PENDING,PROCESSING,PAID,PREPARING&tenantSlug=${tenantSlug}`);
+            const res = await fetch(`/api/orders?status=PENDING,PROCESSING,PAID,PREPARING,DELIVERED&tenantSlug=${tenantSlug}`);
             if (res.ok) { setOrders(await res.json()); setLastRefresh(new Date()); }
           }}
           className="p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition-colors"
