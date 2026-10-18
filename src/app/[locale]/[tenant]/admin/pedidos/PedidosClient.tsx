@@ -51,7 +51,7 @@ const badgeColor: Record<string, string> = {
 
 const nextStatus: Record<string, string | null> = {
   PENDING: "PROCESSING",
-  PROCESSING: "PREPARING",
+  PROCESSING: "PAID",
   PAID: "PREPARING",
   PREPARING: "DELIVERED",
   DELIVERED: null,
@@ -59,7 +59,7 @@ const nextStatus: Record<string, string | null> = {
 
 const nextStatusLabel: Record<string, string> = {
   PENDING: "Confirmar pedido",
-  PROCESSING: "Comenzar a preparar",
+  PROCESSING: "Marcar como pagado",
   PAID: "Comenzar a preparar",
   PREPARING: "Marcar todo como entregado",
 };
