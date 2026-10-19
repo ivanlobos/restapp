@@ -71,19 +71,24 @@ export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [deliveredItems, setDeliveredItems] = useState<Record<string, Set<string>>>({});
+  const [releasedTableIds, setReleasedTableIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!tenantSlug) return;
     const interval = setInterval(async () => {
       const res = await fetch(`/api/orders?status=PENDING,PROCESSING,PAID,PREPARING,DELIVERED&tenantSlug=${tenantSlug}`);
       if (res.ok) {
-        const data = await res.json();
-        setOrders(data);
+        const data: Order[] = await res.json();
+        // No mostrar pedidos cuya mesa ya fue liberada manualmente en esta sesión
+        setOrders((prev) => {
+          const filtered = data.filter((o) => !releasedTableIds.has(o.table.id));
+          return filtered;
+        });
         setLastRefresh(new Date());
       }
     }, 5000);
     return () => clearInterval(interval);
-  }, [tenantSlug]);
+  }, [tenantSlug, releasedTableIds]);
 
   const toggleItem = (orderId: string, itemId: string) => {
     setDeliveredItems((prev) => {
@@ -130,6 +135,7 @@ export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
       body: JSON.stringify({ tenantSlug }),
     });
     if (res.ok) {
+      setReleasedTableIds((prev) => new Set(prev).add(tableId));
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
     }
   };
