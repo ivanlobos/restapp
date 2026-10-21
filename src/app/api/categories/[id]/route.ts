@@ -36,12 +36,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: "Categoría no encontrada" }, { status: 404 });
   }
 
+  const validAreas = ["KITCHEN", "BAR", "ALL"];
+  const area = body.area !== undefined
+    ? (validAreas.includes(body.area) ? body.area : existing.area)
+    : undefined;
+
   const category = await prisma.category.update({
     where: { id },
     data: {
-      name: body.name,
-      sortOrder: body.sortOrder,
-      isActive: body.isActive,
+      ...(body.name !== undefined && { name: body.name }),
+      ...(body.sortOrder !== undefined && { sortOrder: body.sortOrder }),
+      ...(body.isActive !== undefined && { isActive: body.isActive }),
+      ...(area !== undefined && { area }),
     },
   });
   return NextResponse.json(category);

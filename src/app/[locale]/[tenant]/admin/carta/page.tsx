@@ -23,5 +23,6 @@ export default async function CartaPage({ params }: CartaPageProps) {
     },
   });
 
-  return <CartaClient initialCategories={categories} />;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return <CartaClient initialCategories={categories as any} />;
 }

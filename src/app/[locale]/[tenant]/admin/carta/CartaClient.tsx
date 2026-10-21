@@ -16,13 +16,22 @@ interface Product {
   sortOrder: number;
 }
 
+type CategoryArea = "KITCHEN" | "BAR" | "ALL";
+
 interface Category {
   id: string;
   name: string;
   isActive: boolean;
   sortOrder: number;
+  area: CategoryArea;
   products: Product[];
 }
+
+const AREA_CONFIG: Record<CategoryArea, { label: string; emoji: string; color: string }> = {
+  KITCHEN: { label: "Cocina", emoji: "🍳", color: "bg-orange-100 text-orange-700" },
+  BAR:     { label: "Bar",    emoji: "🍺", color: "bg-blue-100 text-blue-700" },
+  ALL:     { label: "Ambos", emoji: "🔄", color: "bg-gray-100 text-gray-600" },
+};
 
 export function CartaClient({ initialCategories }: { initialCategories: Category[] }) {
   const params = useParams();
@@ -70,6 +79,20 @@ export function CartaClient({ initialCategories }: { initialCategories: Category
       setShowCatForm(false);
     }
     setLoading(false);
+  };
+
+  const handleCatAreaChange = async (id: string, area: CategoryArea) => {
+    const res = await fetch(`/api/categories/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ area, tenantSlug }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setCategories((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, area: updated.area } : c))
+      );
+    }
   };
 
   const handleCatDelete = async (id: string) => {
@@ -199,6 +222,9 @@ export function CartaClient({ initialCategories }: { initialCategories: Category
                   ({cat.products.length})
                 </span>
               </span>
+              <span className={`text-xs ml-1 ${selectedCatId === cat.id ? "opacity-80" : ""}`}>
+                {AREA_CONFIG[cat.area as CategoryArea]?.emoji ?? "🔄"}
+              </span>
               <button
                 onClick={(e) => { e.stopPropagation(); handleCatDelete(cat.id); }}
                 className={`opacity-0 group-hover:opacity-100 p-0.5 rounded transition-opacity ${
@@ -215,9 +241,37 @@ export function CartaClient({ initialCategories }: { initialCategories: Category
       {/* Products panel */}
       <div className="flex-1">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold text-gray-900">
-            {selectedCat ? selectedCat.name : "Carta"}
-          </h1>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">
+              {selectedCat ? selectedCat.name : "Carta"}
+            </h1>
+            {selectedCat && (
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <span className="text-xs text-gray-400 mr-1">Área:</span>
+                {(["KITCHEN", "BAR", "ALL"] as CategoryArea[]).map((area) => {
+                  const cfg = AREA_CONFIG[area];
+                  const isActive = selectedCat.area === area;
+                  return (
+                    <button
+                      key={area}
+                      onClick={() => handleCatAreaChange(selectedCat.id, area)}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
+                        isActive
+                          ? `${cfg.color} border-transparent ring-2 ring-offset-1 ${
+                              area === "KITCHEN" ? "ring-orange-300" :
+                              area === "BAR" ? "ring-blue-300" : "ring-gray-300"
+                            }`
+                          : "border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      <span>{cfg.emoji}</span>
+                      <span>{cfg.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
           {selectedCat && (
             <button
               onClick={openCreate}
