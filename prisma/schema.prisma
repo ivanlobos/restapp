@@ -37,6 +37,7 @@ model Tenant {
   waiterCalls  WaiterCall[]
   dailyCloses  DailyClose[]
   settings     Settings?
+  adminUsers   AdminUser[]
 }
 
 model Table {
@@ -64,6 +65,7 @@ model Category {
   name      String
   sortOrder Int       @default(0)
   isActive  Boolean   @default(true)
+  area      String    @default("ALL") // "KITCHEN" | "BAR" | "ALL"
   products  Product[]
 
   @@index([tenantId])
@@ -163,4 +165,23 @@ model Settings {
   tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   weekStartDay Int      @default(1)
   updatedAt    DateTime @updatedAt
+}
+
+// Roles del sistema:
+// - OWNER:   dueño — acceso total: pedidos, carta, mesas, analítica, configuración
+// - KITCHEN: cocina — solo ve pedidos de su área (comida), sin datos financieros
+// - BAR:     bar — solo ve pedidos de su área (bebestibles), sin datos financieros
+model AdminUser {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  username  String
+  pin       String   // 4-6 dígitos, almacenado como bcrypt hash
+  role      String   // "OWNER" | "KITCHEN" | "BAR"
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, username])
+  @@index([tenantId])
 }
