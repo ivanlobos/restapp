@@ -14,7 +14,7 @@ interface Order {
   tipAmount: number;
   total: number;
   includeTip: boolean;
-  stripePaymentId?: string | null;
+  mpPaymentId?: string | null;
   createdAt: string;
   table: Table;
   items: OrderItem[];
@@ -124,7 +124,7 @@ export function HistorialClient({ initialOrders }: { initialOrders: Order[] }) {
                   <div className="border-t pt-2 flex items-center gap-2">
                     <span className="text-xs text-gray-500">Medio de pago:</span>
                     <span className="text-xs font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                      {order.stripePaymentId ? "💳 Stripe" : "Efectivo / Otro"}
+                      {order.mpPaymentId ? "💳 Mercado Pago" : "Efectivo / Otro"}
                     </span>
                   </div>
                 </div>

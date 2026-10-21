@@ -99,7 +99,7 @@ model Order {
   tipAmount       Int
   total           Int
   includeTip      Boolean     @default(true)
-  stripePaymentId String?
+  mpPaymentId     String?
   paidAt          DateTime?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
