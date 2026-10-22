@@ -27,8 +27,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!user || !user.isActive) {
-      console.error('login-pin: user not found', { tenantId: tenant.id, username, userFound: !!user });
-      return NextResponse.json({ error: 'Credenciales inválidas', debug: { tenantId: tenant.id, username } }, { status: 401 });
+      return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
     }
 
     const isValid = await bcrypt.compare(pin, user.pin);
