@@ -14,8 +14,13 @@ function cookieName(tenantSlug: string) {
  * Crea una sesión admin firmando un JWT y guardándolo en cookie httpOnly.
  * Se llama después de validar la adminKey contra la DB.
  */
-export async function createAdminSession(tenantId: string, tenantSlug: string) {
-  const token = await new SignJWT({ tenantId, tenantSlug })
+export async function createAdminSession(
+  tenantId: string,
+  tenantSlug: string,
+  role: string = "OWNER",
+  userId?: string
+) {
+  const token = await new SignJWT({ tenantId, tenantSlug, role, userId: userId ?? null })
     .setProtectedHeader({ alg: ALG })
     .setIssuedAt()
     .setExpirationTime(EXPIRES_IN)
@@ -33,9 +38,14 @@ export async function createAdminSession(tenantId: string, tenantSlug: string) {
 
 /**
  * Lee la cookie del tenant y valida el JWT.
- * Retorna { tenantId, tenantSlug } si la sesión es válida, null si no.
+ * Retorna { tenantId, tenantSlug, role, userId } si la sesión es válida, null si no.
  */
-export async function getAdminSession(tenantSlug: string): Promise<{ tenantId: string; tenantSlug: string } | null> {
+export async function getAdminSession(tenantSlug: string): Promise<{
+  tenantId: string;
+  tenantSlug: string;
+  role: string;
+  userId: string | null;
+} | null> {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get(cookieName(tenantSlug))?.value;
@@ -45,7 +55,12 @@ export async function getAdminSession(tenantSlug: string): Promise<{ tenantId: s
     if (typeof payload.tenantId !== 'string' || typeof payload.tenantSlug !== 'string') return null;
     if (payload.tenantSlug !== tenantSlug) return null;
 
-    return { tenantId: payload.tenantId, tenantSlug: payload.tenantSlug };
+    return {
+      tenantId: payload.tenantId,
+      tenantSlug: payload.tenantSlug,
+      role: typeof payload.role === 'string' ? payload.role : 'OWNER',
+      userId: typeof payload.userId === 'string' ? payload.userId : null,
+    };
   } catch {
     return null;
   }

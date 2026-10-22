@@ -64,7 +64,13 @@ const nextStatusLabel: Record<string, string> = {
   PREPARING: "Marcar todo como entregado",
 };
 
-export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
+const roleLabel: Record<string, string> = {
+  OWNER: "Dueño",
+  KITCHEN: "🍳 Cocina",
+  BAR: "🍺 Bar",
+};
+
+export function PedidosClient({ initialOrders, role = "OWNER" }: { initialOrders: Order[]; role?: string }) {
   const params = useParams();
   const tenantSlug = params?.tenant as string;
   const locale = params?.locale as string;
@@ -144,7 +150,14 @@ export function PedidosClient({ initialOrders }: { initialOrders: Order[] }) {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pedidos activos</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-gray-900">Pedidos activos</h1>
+            {role !== "OWNER" && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
+                {roleLabel[role] ?? role}
+              </span>
+            )}
+          </div>
           <p className="text-gray-400 text-xs mt-0.5">
             Actualizado: {lastRefresh ? lastRefresh.toLocaleTimeString("es-CL") : "--:--:--"} · Auto-refresh cada 5s
           </p>
