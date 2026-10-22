@@ -1,4 +1,4 @@
-// v2
+// build: 2026-10-22
 import { prisma } from "@/lib/prisma";
 import { formatCLP } from "@/lib/utils";
 import { ShoppingBag, CheckCircle, Clock, DollarSign } from "lucide-react";
