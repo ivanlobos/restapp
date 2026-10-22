@@ -4,6 +4,7 @@ import { formatCLP } from "@/lib/utils";
 import { ShoppingBag, CheckCircle, Clock, DollarSign } from "lucide-react";
 import { DailyCloseSection } from "./DailyCloseSection";
 import { AnalyticsSection } from "./AnalyticsSection";
+import { AreaStatusSection } from "./AreaStatusSection";
 import { requireTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
@@ -99,6 +100,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
         ))}
       </div>
 
+      <AreaStatusSection />
       <DailyCloseSection />
       <AnalyticsSection />
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
