@@ -83,7 +83,7 @@ export function MesasClient({ initialTables, tableAutoReleaseMinutes }: MesasCli
     if (!tenantSlug) return;
     try {
       setRefreshing(true);
-      const res = await fetch(`/api/tables?tenantSlug=${tenantSlug}`);
+      const res = await fetch(`/api/tables?tenantSlug=${encodeURIComponent(tenantSlug)}`);
       if (res.ok) { setTables(await res.json()); setLastUpdate(new Date()); }
     } catch (err) { console.error("Error refreshing:", err); }
     finally { setRefreshing(false); }
@@ -143,14 +143,6 @@ export function MesasClient({ initialTables, tableAutoReleaseMinutes }: MesasCli
     if (res.ok) { const updated = await res.json(); setTables((prev) => prev.map((t) => (t.id === updated.id ? updated : t))); }
   };
 
-  const refreshTables = async () => {
-    const res = await fetch(`/api/tables?tenantSlug=${encodeURIComponent(tenantSlug)}`);
-    if (res.ok) {
-      const updated = await res.json();
-      setTables(updated);
-    }
-  };
-
   const handleRelease = async (tableId: string) => {
     setReleasingIds((prev) => new Set(prev).add(tableId));
     setReleaseError(null);
@@ -171,7 +163,7 @@ export function MesasClient({ initialTables, tableAutoReleaseMinutes }: MesasCli
       }
       const updated = await res.json();
       setTables((prev) => prev.map((t) => (t.id === updated.id ? { ...t, ...updated } : t)));
-      await refreshTables();
+      await refreshData();
     } catch (err) {
       setReleaseError(`Error al liberar la mesa: ${err instanceof Error ? err.message : "Error desconocido"}`);
     } finally {
