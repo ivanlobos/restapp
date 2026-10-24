@@ -11,7 +11,9 @@
     "db:seed": "ts-node --project tsconfig.seed.json prisma/seed.ts",
     "db:studio": "prisma studio",
     "create-tenant": "node scripts/create-tenant.js",
-    "backup-prod": "node scripts/backup-prod.js"
+    "backup-prod": "node scripts/backup-prod.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "prisma": {
     "seed": "ts-node --project tsconfig.seed.json prisma/seed.ts"
@@ -44,11 +46,14 @@
     "@types/pg": "^8.20.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "@vitest/coverage-v8": "^5.0.5",
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "^15.3.9",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
   }
 }

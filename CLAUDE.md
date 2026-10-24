@@ -6,8 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run dev          # Start dev server (localhost:3000)
-npm run build        # Production build
+npm run build        # Production build (prisma generate + migrate deploy + next build)
 npm run lint         # ESLint
+npm run test         # Run test suite (Vitest, ~43 tests, ~1s)
+npm run test:watch   # Vitest in watch mode
 npm run db:migrate   # Run Prisma migrations (npx prisma migrate dev)
 npm run db:seed      # Seed database with sample data
 npm run db:studio    # Open Prisma Studio (DB browser)
@@ -15,46 +17,68 @@ npm run db:studio    # Open Prisma Studio (DB browser)
 
 ## Architecture
 
-**Next.js 14 App Router** — all routes use server components by default; client interactivity is in separate `*Client.tsx` files co-located with their server page.
+**Next.js 15 App Router** — all routes use server components by default; client interactivity is in separate `*Client.tsx` files co-located with their server page.
 
-**Prisma 7 + SQLite** — uses the `@prisma/adapter-libsql` driver adapter (required by Prisma 7 — the URL is NOT in `schema.prisma`, it lives in `prisma.config.ts` and is passed to the adapter constructor). The Prisma client singleton is in `src/lib/prisma.ts`.
+**Prisma 6 + Supabase PostgreSQL** — uses `@prisma/adapter-pg`. DATABASE_URL points to Supabase (production: txsjqmpdrocvvvpuqjdl). The Prisma client singleton is in `src/lib/prisma.ts`.
 
-**Stripe (CLP)** — CLP is a zero-decimal currency: `amount: 5000` = $5,000 CLP. Never multiply by 100. Webhook raw body must be read with `request.text()` before passing to `stripe.webhooks.constructEvent()`.
+**Multi-tenant** — each restaurant is a `Tenant` with a unique `slug` (e.g. "imperial"). All routes are scoped under `[locale]/[tenant]/`. Tenant config lives in DB.
 
-**Zustand cart** (`src/store/cartStore.ts`) — persisted to `sessionStorage` so each browser tab is isolated. Cart stores `tableId` + `customerName` + items. Computed values (`getSubtotal`, `getTip`, `getTotal`) are functions, not stored state.
+**Mercado Pago** — sole payment processor (Stripe removed). CLP is zero-decimal: `amount: 5000` = $5,000 CLP. Never multiply by 100. Webhook at `/api/payments/mp-webhook?tenant=<slug>` validates HMAC-SHA256 signature before trusting any payment data.
+
+**Admin auth** — httpOnly cookie + JWT (jose library). Roles: OWNER / KITCHEN / BAR. Login via `/api/admin/login` (adminKey) or `/api/admin/login-pin` (PIN for kitchen/bar roles).
+
+**Zustand cart** (`src/store/cartStore.ts`) — persisted to `sessionStorage` (v3) so each browser tab is isolated. Cart stores `tableId` + `customerName` + items. Computed values (`getSubtotal`, `getTip`, `getTotal`) are functions, not stored state.
+
+**Rate limiting** — in-memory sliding window in `src/middleware.ts`. Limits per bucket: waiter 10/min, orders/payments 5/min, admin/login 10/min, general API 60/min. DEUDA DT-3B: migrate to Upstash Redis at 10+ active tenants.
+
+**AES-256-GCM encryption** (`src/lib/crypto.ts`) — sensitive tenant data (MP tokens, webhook secrets) encrypted at rest. Requires `ENCRYPTION_KEY` env var (64 hex chars = 32 bytes).
 
 ## Route map
 
 | Path | What it does |
 |------|-------------|
 | `/` | Redirects to `/admin` |
-| `/mesa/[tableId]` | Name entry for customer (validates table exists) |
-| `/mesa/[tableId]/menu` | Menu browser + cart drawer (guards: needs name in cart store) |
-| `/mesa/[tableId]/pago` | Checkout — creates Order then PaymentIntent then renders Stripe Elements |
-| `/mesa/[tableId]/gracias` | Post-payment confirmation, clears cart |
-| `/admin` | Dashboard with today's stats |
-| `/admin/mesas` | Table CRUD + QR code generation/download |
-| `/admin/carta` | Category + product management |
-| `/admin/pedidos` | Live order view with 5s polling; admin advances order status |
+| `/[locale]/[tenant]/mesa/[tableId]` | Name entry for customer (validates table exists) |
+| `/[locale]/[tenant]/mesa/[tableId]/menu` | Menu browser + cart drawer |
+| `/[locale]/[tenant]/mesa/[tableId]/pago` | Checkout — creates Order then MP preference |
+| `/[locale]/[tenant]/mesa/[tableId]/gracias` | Post-payment confirmation, clears cart |
+| `/[locale]/[tenant]/admin` | Dashboard with today's stats |
+| `/[locale]/[tenant]/admin/mesas` | Table CRUD + QR code generation/download |
+| `/[locale]/[tenant]/admin/carta` | Category + product management |
+| `/[locale]/[tenant]/admin/pedidos` | Live order view with 5s polling; admin advances order status |
+| `/[locale]/[tenant]/kiosk/cocina` | Kitchen display (role: KITCHEN) |
+| `/[locale]/[tenant]/kiosk/bar` | Bar display (role: BAR) |
 
 ## Customer payment flow
 
 1. `POST /api/orders` — creates Order with computed subtotal/tip/total, snapshots product prices
-2. `POST /api/payments/create-intent` — creates Stripe PaymentIntent (amount = `order.total`, currency = `"clp"`)
-3. Stripe webhooks confirm payment: `POST /api/payments/webhook` sets `order.status = "PAID"`
+2. `POST /api/mercadopago` — creates MP preference, returns `init_point` URL
+3. Customer redirected to MP checkout page
+4. MP webhook: `POST /api/payments/mp-webhook?tenant=<slug>` validates HMAC signature, queries MP API for payment details, validates amount matches order, sets `order.status = "PAID"`
 
 ## Monetary values
 
-All prices stored as integers (CLP pesos). `formatCLP()` in `src/lib/utils.ts` formats for display. `calcTip()` computes 10% with `Math.round()`.
+All prices stored as integers (CLP pesos). `formatCLP()` in `src/lib/utils.ts` formats for display. `calcTip()` computes tip with `Math.round()`.
+
+## Tests (`src/tests/`)
+
+| File | What it covers |
+|------|---------------|
+| `mp-webhook.test.ts` | HMAC signature, amount validation, idempotency, cross-tenant security |
+| `orders.test.ts` | Body validation, CLP calculation, price snapshot, DB error cases |
+| `admin-auth.test.ts` | Plain/bcrypt adminKey, inactive tenant, missing fields |
+
+Tests use Vitest + vi.mock for Prisma and fetch. No real DB or HTTP server needed.
 
 ## Environment variables
 
 ```
-DATABASE_URL=file:./dev.db
-NEXT_PUBLIC_BASE_URL=http://localhost:3000   # Used for QR code URLs
-STRIPE_SECRET_KEY=sk_test_...
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+DATABASE_URL=postgresql://...   # Supabase connection string
+DIRECT_URL=postgresql://...     # Supabase direct URL (for migrations)
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+ENCRYPTION_KEY=<64 hex chars>   # AES-256-GCM key for MP credentials
+JWT_SECRET=<any string>         # Admin session JWT signing
+ADMIN_SESSION_SECRET=<any string>
 ```
 
-For local Stripe webhook testing: `stripe listen --forward-to localhost:3000/api/payments/webhook`
+For local MP webhook testing: use ngrok or similar to expose localhost, configure webhook URL in MP dashboard.
