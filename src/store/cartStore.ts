@@ -11,8 +11,12 @@ const noopStorage = {
   removeItem: () => {},
 };
 
+// sessionStorage: cada tab del navegador tiene su propio carrito aislado.
+// Si el cliente abre dos tabs distintas (dos mesas distintas), no se mezclan.
+// Esto también evita que el carrito de un cliente anterior persista en el
+// dispositivo compartido del local (ej: tablet en la mesa).
 const storage = typeof window !== "undefined"
-  ? createJSONStorage(() => localStorage)
+  ? createJSONStorage(() => sessionStorage)
   : createJSONStorage(() => noopStorage);
 
 export const useCartStore = create<CartStore>()(
@@ -79,7 +83,9 @@ export const useCartStore = create<CartStore>()(
       },
     }),
     {
-      name: "cart-storage-v2",
+      // v3: migrado de localStorage a sessionStorage (DT-6)
+      // Al cambiar el nombre, los clientes con v2 en localStorage parten con carrito limpio
+      name: "cart-storage-v3",
       storage,
     }
   )
