@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { Plus, Pencil, Trash2, X, Eye, EyeOff, Tag } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Eye, EyeOff, Tag, AlertCircle, CheckCircle2 } from "lucide-react";
 import { formatCLP } from "@/lib/utils";
 
 interface Product {
@@ -48,16 +48,17 @@ export function CartaClient({ initialCategories }: { initialCategories: Category
   const [pDesc, setPDesc] = useState("");
   const [pPrice, setPPrice] = useState("");
   const [pImage, setPImage] = useState("");
+  const [pImageError, setPImageError] = useState<string | null>(null);
   const [pCat, setPCat] = useState("");
 
   const openCreate = () => {
-    setPName(""); setPDesc(""); setPPrice(""); setPImage(""); setPCat(selectedCatId ?? "");
+    setPName(""); setPDesc(""); setPPrice(""); setPImage(""); setPImageError(null); setPCat(selectedCatId ?? "");
     setProductModal({ mode: "create" });
   };
 
   const openEdit = (product: Product) => {
     setPName(product.name); setPDesc(product.description ?? "");
-    setPPrice(product.price.toString()); setPImage(product.imageUrl ?? ""); setPCat(product.categoryId);
+    setPPrice(product.price.toString()); setPImage(product.imageUrl ?? ""); setPImageError(null); setPCat(product.categoryId);
     setProductModal({ mode: "edit", product });
   };
 
@@ -390,34 +391,108 @@ export function CartaClient({ initialCategories }: { initialCategories: Category
                 </div>
               </div>
               <div>
-  <label className="block text-xs font-medium text-gray-500 mb-1">Imagen del producto</label>
-  {pImage && (
-    <div className="relative mb-2">
-      <img src={pImage} alt="preview" className="w-full h-32 object-cover rounded-xl" />
-      <button type="button" onClick={() => setPImage("")}
-        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600">
-        <X size={12} />
-      </button>
-    </div>
-  )}
-  <label className="flex items-center justify-center gap-2 w-full border-2 border-dashed border-gray-200 rounded-xl px-3 py-3 text-sm text-gray-400 hover:border-amber-400 hover:text-amber-500 cursor-pointer transition-colors">
-    <input type="file" accept="image/*" className="hidden"
-      onChange={async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        const fd = new FormData();
-        fd.append("file", file);
-        fd.append("tenantSlug", tenantSlug);
-        setLoading(true);
-        const res = await fetch("/api/upload", { method: "POST", body: fd });
-        const data = await res.json();
-        if (data.url) setPImage(data.url);
-        setLoading(false);
-      }}
-    />
-    {loading ? "Subiendo..." : "📷 Subir foto"}
-  </label>
-</div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Imagen del producto</label>
+
+                {/* Preview */}
+                {pImage && (
+                  <div className="relative mb-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={pImage} alt="preview" className="w-full h-32 object-cover rounded-xl" />
+                    <button type="button" onClick={() => { setPImage(""); setPImageError(null); }}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600">
+                      <X size={12} />
+                    </button>
+                    <span className="absolute bottom-1 left-1 flex items-center gap-1 bg-green-600/90 text-white text-[10px] font-medium px-1.5 py-0.5 rounded-full">
+                      <CheckCircle2 size={10} /> Imagen cargada
+                    </span>
+                  </div>
+                )}
+
+                {/* Error de validación */}
+                {pImageError && (
+                  <div className="flex items-start gap-1.5 mb-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    <AlertCircle size={14} className="text-red-500 mt-0.5 shrink-0" />
+                    <p className="text-xs text-red-700">{pImageError}</p>
+                  </div>
+                )}
+
+                {/* Botón de carga */}
+                <label className={
+                  "flex items-center justify-center gap-2 w-full border-2 border-dashed rounded-xl px-3 py-3 text-sm cursor-pointer transition-colors " +
+                  (pImageError
+                    ? "border-red-300 text-red-400 hover:border-red-400"
+                    : "border-gray-200 text-gray-400 hover:border-amber-400 hover:text-amber-500")
+                }>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setPImageError(null);
+
+                      // Validar tipo
+                      const ALLOWED = ["image/jpeg", "image/png", "image/webp"];
+                      if (!ALLOWED.includes(file.type)) {
+                        setPImageError("Formato no válido. Usa JPG, PNG o WEBP.");
+                        e.target.value = "";
+                        return;
+                      }
+
+                      // Validar tamaño (5 MB)
+                      if (file.size > 5 * 1024 * 1024) {
+                        setPImageError(`La imagen pesa ${(file.size / 1024 / 1024).toFixed(1)} MB. El máximo es 5 MB. Comprimela en tinypng.com o similar.`);
+                        e.target.value = "";
+                        return;
+                      }
+
+                      // Validar dimensiones mínimas (400x400)
+                      const dims = await new Promise<{ w: number; h: number }>((resolve) => {
+                        const url = URL.createObjectURL(file);
+                        const img = new Image();
+                        img.onload = () => { resolve({ w: img.width, h: img.height }); URL.revokeObjectURL(url); };
+                        img.onerror = () => resolve({ w: 0, h: 0 });
+                        img.src = url;
+                      });
+
+                      if (dims.w < 400 || dims.h < 400) {
+                        setPImageError(`La imagen es muy pequeña (${dims.w}×${dims.h}px). Mínimo recomendado: 400×400px para que se vea bien en el menú.`);
+                        e.target.value = "";
+                        return;
+                      }
+
+                      // Todo OK — subir
+                      const fd = new FormData();
+                      fd.append("file", file);
+                      fd.append("tenantSlug", tenantSlug);
+                      setLoading(true);
+                      try {
+                        const res = await fetch("/api/upload", { method: "POST", body: fd });
+                        const data = await res.json();
+                        if (data.url) {
+                          setPImage(data.url);
+                        } else {
+                          setPImageError(data.error ?? "Error al subir la imagen. Intenta de nuevo.");
+                        }
+                      } catch {
+                        setPImageError("Error de conexión al subir la imagen.");
+                      } finally {
+                        setLoading(false);
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+                  {loading ? "Subiendo..." : pImage ? "📷 Cambiar foto" : "📷 Subir foto"}
+                </label>
+
+                {/* Guía de formato */}
+                {!pImage && !pImageError && (
+                  <p className="text-[10px] text-gray-400 mt-1.5 leading-relaxed">
+                    JPG, PNG o WEBP · Máx 5 MB · Mínimo 400×400 px · Cuadrada o paisaje
+                  </p>
+                )}
+              </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={closeModal}
                   className="flex-1 border border-gray-200 text-gray-600 font-medium py-2.5 rounded-xl text-sm hover:bg-gray-50 transition-colors">
