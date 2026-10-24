@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { QrCode, Plus, Trash2, X, Download, FileText, Users, Coffee, Bell, Clock, Map, List, RefreshCw, Unlock } from "lucide-react";
+import { QrCode, Plus, Trash2, X, Download, FileText, Users, Coffee, Bell, Clock, Map, List, RefreshCw, Unlock, Volume2, VolumeX } from "lucide-react";
 import jsPDF from "jspdf";
 import { useTableAutoRelease } from "@/lib/hooks/useTableAutoRelease";
+import { useWaiterCallSound } from "@/lib/hooks/useWaiterCallSound";
 
 interface OrderItem { quantity: number }
 interface ActiveOrder { id: string; customerName: string; status: string; total: number; createdAt: Date | string; updatedAt: Date | string; items: OrderItem[] }
@@ -70,14 +71,23 @@ export function MesasClient({ initialTables, tableAutoReleaseMinutes }: MesasCli
   const [refreshing, setRefreshing] = useState(false);
   const [releasingIds, setReleasingIds] = useState<Set<string>>(new Set());
   const [releaseError, setReleaseError] = useState<string | null>(null);
+  const [soundActive, setSoundActive] = useState(false);
 
-  // Sync whenever the hook polls new data
+  const { enableSound, checkForNewCalls } = useWaiterCallSound();
+
+  const handleEnableSound = useCallback(() => {
+    enableSound();
+    setSoundActive(true);
+  }, [enableSound]);
+
+  // Sync whenever the hook polls new data + detectar nuevos waiter calls
   useEffect(() => {
     if (polledTables.length > 0) {
+      checkForNewCalls(polledTables);
       setTables(polledTables as Table[]);
       setLastUpdate(new Date());
     }
-  }, [polledTables]);
+  }, [polledTables, checkForNewCalls]);
 
   const refreshData = useCallback(async () => {
     if (!tenantSlug) return;
@@ -190,6 +200,19 @@ export function MesasClient({ initialTables, tableAutoReleaseMinutes }: MesasCli
             <button onClick={() => setViewMode("list")} className={"flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors " + (viewMode === "list" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700")}><List size={15} /> Gestión</button>
           </div>
           <button onClick={refreshData} disabled={refreshing} className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"><RefreshCw size={16} className={refreshing ? "animate-spin" : ""} /></button>
+          {soundActive ? (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 border border-green-200 text-green-700 text-xs font-medium">
+              <Volume2 size={14} /> Sonido activo
+            </div>
+          ) : (
+            <button
+              onClick={handleEnableSound}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition-colors text-xs font-medium"
+              title="Haz click para recibir alertas de sonido cuando un cliente llama al garzón"
+            >
+              <VolumeX size={14} /> Activar alarma
+            </button>
+          )}
           <button onClick={() => { setViewMode("list"); setShowForm(true); }} className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold px-4 py-2 rounded-xl transition-colors"><Plus size={18} /> Nueva mesa</button>
         </div>
       </div>
